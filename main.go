@@ -7,6 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/nadyafa/go-learn/config/db"
 	"github.com/nadyafa/go-learn/config/helper"
+	"github.com/nadyafa/go-learn/controller"
+	"github.com/nadyafa/go-learn/repository"
+	"github.com/nadyafa/go-learn/service"
 )
 
 func main() {
@@ -38,6 +41,14 @@ func main() {
 			"message": "pong",
 		})
 	})
+
+	// setup dependencies
+	userRepo := repository.NewUserRepo(dbInit)
+	userService := service.NewUserService(userRepo)
+	userController := controller.NewUserController(userService)
+
+	// users
+	r.POST("/users", userController.UserSignup)
 
 	r.Run()
 }
