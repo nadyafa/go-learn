@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type Course struct {
-	CourseID    int       `json:"course_id" gorm:"primaryKey;autoIncrement"`
+	CourseID    uint      `json:"course_id" gorm:"primaryKey;autoIncrement"`
 	CourseName  string    `json:"course_name" gorm:"notNull"`
 	Description string    `json:"description" gorm:"omitempty"`
 	StartDate   time.Time `json:"start_date"`

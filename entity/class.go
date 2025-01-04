@@ -3,12 +3,12 @@ package entity
 import "time"
 
 type Class struct {
-	ClassID     int    `json:"class_id" gorm:"primaryKey;autoIncrement"`
-	CourseID    int    `json:"course_id" gorm:"index;notNull"`
+	ClassID     uint   `json:"class_id" gorm:"primaryKey;autoIncrement"`
+	CourseID    uint   `json:"course_id" gorm:"index;notNull"`
 	ClassName   string `json:"class_name" gorm:"notNull"`
 	Description string `json:"description" gorm:"omitempty"`
 
-	MentorID int  `json:"mentor_id" gorm:"notNull"`
+	MentorID uint `json:"mentor_id" gorm:"notNull"`
 	Mentor   User `gorm:"foreignKey:MentorID"`
 
 	StartDate time.Time `json:"start_date"`

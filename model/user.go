@@ -17,11 +17,11 @@ type UserSignin struct {
 }
 
 type UserReqUpdate struct {
-	FirstName   string `json:"first_name" gorm:"size:50;notNull"`
-	LastName    string `json:"last_name" gorm:"size:50;notNull"`
-	Password    string `json:"password" gorm:"notNull"`
-	Description string `json:"description" gorm:"omitempty"`
-	Image_path  string `json:"image_path" gorm:"omitempty"`
+	FirstName string `json:"first_name" gorm:"size:50;notNull"`
+	LastName  string `json:"last_name" gorm:"size:50;notNull"`
+	Password  string `json:"password" gorm:"notNull"`
+	// Description string `json:"description" gorm:"omitempty"`
+	// Image_path  string `json:"image_path" gorm:"omitempty"`
 }
 
 type UserResponse struct {

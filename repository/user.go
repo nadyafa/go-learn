@@ -1,18 +1,22 @@
 package repository
 
-// import "gorm.io/gorm"
+import (
+	"context"
 
-// type UsersRepo interface {
-// }
+	"gorm.io/gorm"
+)
 
-// type UserRepoImpl struct {
-// 	db *gorm.DB
-// }
+type UsersRepo interface {
+}
 
-// func NewUserRepo(db *gorm.DB) UsersRepo {
-// 	return &UserRepoImpl{
-// 		db: db,
-// 	}
-// }
+type UserRepoImpl struct {
+	db *gorm.DB
+}
 
-// func (r *UserRepoImpl) AddUser(ctx co)
+func NewUserRepo(db *gorm.DB) UsersRepo {
+	return &UserRepoImpl{
+		db: db,
+	}
+}
+
+func (r *UserRepoImpl) AddUser(ctx context.Context, userID uint)

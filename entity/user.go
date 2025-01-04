@@ -13,7 +13,7 @@ const (
 )
 
 type User struct {
-	UserID    int       `json:"user_id" gorm:"primaryKey;autoIncrement"`
+	UserID    uint      `json:"user_id" gorm:"primaryKey;autoIncrement"`
 	Username  string    `json:"username" gorm:"size:100;unique;notNull"`
 	Email     string    `json:"email" gorm:"notNull;unique"`
 	FirstName string    `json:"first_name" gorm:"size:50;notNull"`
