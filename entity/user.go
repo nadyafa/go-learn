@@ -7,9 +7,9 @@ import (
 type Role string
 
 const (
-	Student Role = "Student"
-	Admin   Role = "Admin"
-	Mentor  Role = "Mentor"
+	Student Role = "student"
+	Admin   Role = "admin"
+	Mentor  Role = "mentor"
 )
 
 type User struct {
@@ -18,10 +18,8 @@ type User struct {
 	Email    string `json:"email" gorm:"notNull;unique"`
 	// FirstName string    `json:"first_name" gorm:"size:50;notNull"`
 	// LastName  string    `json:"last_name" gorm:"size:50;notNull"`
-	Password         string `json:"password" gorm:"notNull"`
-	EmailVerified    bool   `json:"email_verified"`
-	VerificationCode string `json:"verification_code"`
-	// Role      Role      `json:"role" gorm:"type:varchar(20);notNull"`
+	Password  string    `json:"password" gorm:"notNull"`
+	Role      Role      `json:"role" gorm:"default:student"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 

@@ -4,27 +4,17 @@ import (
 	"time"
 )
 
-//	type UserSignup struct {
-//		Username  string `json:"username" validate:"required,alphanum,min=6,max=100"`
-//		Email     string `json:"email" validate:"required,email"`
-//		Password  string `json:"password" validate:"required,min=6"`
-//		FirstName string `json:"first_name" validate:"required,min=3,max=50"`
-//		LastName  string `json:"last_name" validate:"required,min=3,max=50"`
-//		Role      string `json:"role" validate:"required,oneof=student mentor"`
-//	}
 type UserSignup struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	// FirstName string `json:"first_name"`
-	// LastName  string `json:"last_name"`
-	// Role      string `json:"role"`
+	Username string `json:"username" validate:"required,alphanum,min=6,max=100"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,alphanum"`
+	// Role      string `json:"role" validate:"required,oneof=student mentor"`
 }
 
 type UserSignin struct {
-	Username string `json:"username" validate:"required,alphanum,min=6,max=100"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=6"`
+	Username string `json:"username" validate:"required"`
+	Email    string `json:"email" validate:"omitempty,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type UserReqUpdate struct {

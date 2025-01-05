@@ -4,8 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
+	"github.com/nadyafa/go-learn/model"
 	"gorm.io/gorm"
 )
 
@@ -15,18 +17,20 @@ type UserController interface {
 }
 
 type UserControllerImpl struct {
-	db *gorm.DB
+	db        *gorm.DB
+	validator *validator.Validate
 }
 
 func NewUserController(db *gorm.DB) UserController {
 	return &UserControllerImpl{
-		db: db,
+		db:        db,
+		validator: validator.New(),
 	}
 }
 
 func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 	// binding input req
-	var userSignup entity.User
+	var userSignup model.UserSignup
 
 	if err := ctx.ShouldBindJSON(&userSignup); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -35,21 +39,13 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 		})
 	}
 
-	// username format validation
-	if err := middleware.ValidateUsername(userSignup.Username); err != nil {
+	// use validator to validate input with model struct
+	errorMessage := middleware.ValidateUserInput(userSignup, true)
+	if len(errorMessage) > 0 {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Username must contain alphanumeric",
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	// password validation
-	// password must contain lower & uppercase letter, number and special character and have at least 8 characters
-	if err := middleware.ValidatePassword(userSignup.Password); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Password must be 8 character of combination aphanumeric and special character",
-			"code":  http.StatusBadRequest,
+			"error":   "Validation failed",
+			"details": errorMessage,
+			"code":    http.StatusBadRequest,
 		})
 		return
 	}
@@ -86,7 +82,14 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 
 	// create new user
 	userSignup.Password = hashedPassword
-	if err := c.db.Create(&userSignup).Error; err != nil {
+
+	user := entity.User{
+		Username: userSignup.Username,
+		Email:    userSignup.Email,
+		Password: userSignup.Password,
+	}
+
+	if err := c.db.Create(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Unable to sign up",
 			"code":  http.StatusInternalServerError,
@@ -95,11 +98,11 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 	}
 
 	// response succeed
-
 	ctx.JSON(http.StatusCreated, gin.H{
-		"user_id":  userSignup.UserID,
+		"user_id":  user.UserID,
 		"username": userSignup.Username,
 		"email":    userSignup.Email,
+		"message":  "User successfully created",
 	})
 }
 
@@ -111,6 +114,17 @@ func (c *UserControllerImpl) UserSignin(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid input",
 			"code":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// validate user input
+	errorMessage := middleware.ValidateUserInput(userSignin, false)
+	if len(errorMessage) > 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Validation failed",
+			"details": errorMessage,
+			"code":    http.StatusBadRequest,
 		})
 		return
 	}
