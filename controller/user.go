@@ -35,6 +35,25 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 		})
 	}
 
+	// username format validation
+	if err := middleware.ValidateUsername(userSignup.Username); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Username must contain alphanumeric",
+			"code":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// password validation
+	// password must contain lower & uppercase letter, number and special character and have at least 8 characters
+	if err := middleware.ValidatePassword(userSignup.Password); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Password must be 8 character of combination aphanumeric and special character",
+			"code":  http.StatusBadRequest,
+		})
+		return
+	}
+
 	// checking username if exist in db
 	var exitingUser entity.User
 

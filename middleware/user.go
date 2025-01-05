@@ -1,24 +1,53 @@
 package middleware
 
 import (
+	"errors"
+	"regexp"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
-// func ValidateUsername(db *gorm.DB, username string) error {
-// 	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
-// 	if !re.MatchString(username) {
-// 		return errors.New("username must be alphanumeric")
-// 	}
+func ValidateUsername(username string) error {
+	re := regexp.MustCompile(`^[a-zA-Z0-9]+$`)
+	if !re.MatchString(username) {
+		return errors.New("username must be alphanumeric")
+	}
 
-// 	username = strings.ToLower(username)
+	return nil
+}
 
-// 	var user entity.User
-// 	if err := db.Where("username = ?", username).First(&user).Error; err == nil {
-// 		return errors.New("username already taken")
-// 	}
+func ValidatePassword(password string) error {
+	// Check for at least one lowercase letter
+	lowercaseRegex := regexp.MustCompile(`[a-z]`)
+	if !lowercaseRegex.MatchString(password) {
+		return errors.New("password must contain at least one lowercase letter")
+	}
 
-// 	return nil
-// }
+	// Check for at least one uppercase letter
+	uppercaseRegex := regexp.MustCompile(`[A-Z]`)
+	if !uppercaseRegex.MatchString(password) {
+		return errors.New("password must contain at least one uppercase letter")
+	}
+
+	// Check for at least one digit
+	numberRegex := regexp.MustCompile(`\d`)
+	if !numberRegex.MatchString(password) {
+		return errors.New("password must contain at least one number")
+	}
+
+	// Check for at least one special character
+	specialCharRegex := regexp.MustCompile(`[\W_]+`)
+	if !specialCharRegex.MatchString(password) {
+		return errors.New("password must contain at least one special character")
+	}
+
+	// Check for minimum length of 8 characters
+	if len(password) < 8 {
+		return errors.New("password must be at least 8 characters long")
+	}
+
+	return nil
+}
 
 // func ValidateRole(role string) error {
 // 	switch entity.Role(role) {
