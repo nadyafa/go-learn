@@ -6,33 +6,35 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/nadyafa/go-learn/config/db"
-	"github.com/nadyafa/go-learn/config/helper"
 	"github.com/nadyafa/go-learn/controller"
-	"github.com/nadyafa/go-learn/repository"
-	"github.com/nadyafa/go-learn/service"
 )
 
 func main() {
 	// initiate db
 	dbInit, err := db.DBInit()
 	if err != nil {
-		log.Fatal("Error initializing DB:", err)
+		log.Fatalf("Unable initializing DB: %v", err)
 	}
 
 	// check db connection
 	dbConn, err := dbInit.DB()
 	if err != nil {
-		helper.Logger(helper.LoggerLevelPanic, "DB connection error", err)
+		log.Fatalf("Unable connect to DB: %v", err)
 	}
 
 	defer dbConn.Close()
 
 	if err := dbConn.Ping(); err != nil {
-		helper.Logger(helper.LoggerLevelError, "Unable to ping DBConn", err)
+		log.Fatalf("Unable ping DB connection: %v", err)
 	}
 
 	// db migration
 	db.RunMigration(dbInit)
+
+	// create super admin
+	// if err := model.AdminLogin(dbInit); err != nil {
+	// 	log.Printf("Unable creating super admin: %v", err)
+	// }
 
 	// setup route
 	r := gin.Default()
@@ -42,13 +44,14 @@ func main() {
 		})
 	})
 
-	// setup dependencies
-	userRepo := repository.NewUserRepo(dbInit)
-	userService := service.NewUserService(userRepo)
-	userController := controller.NewUserController(userService)
+	// setup dependencies injection
+	// userRepo := repository.NewUserRepo(dbInit)
+	// userService := service.NewUserService(userRepo)
+	userController := controller.NewUserController(dbInit)
 
 	// users
-	r.POST("/users", userController.UserSignup)
+	r.POST("/signup", userController.UserSignup)
+	r.POST("/signin", userController.UserSignin)
 
 	r.Run()
 }

@@ -1,14 +1,24 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
+//	type UserSignup struct {
+//		Username  string `json:"username" validate:"required,alphanum,min=6,max=100"`
+//		Email     string `json:"email" validate:"required,email"`
+//		Password  string `json:"password" validate:"required,min=6"`
+//		FirstName string `json:"first_name" validate:"required,min=3,max=50"`
+//		LastName  string `json:"last_name" validate:"required,min=3,max=50"`
+//		Role      string `json:"role" validate:"required,oneof=student mentor"`
+//	}
 type UserSignup struct {
-	Username  string `json:"username" validate:"required,alphanum,min=6,max=100"`
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=6"`
-	FirstName string `json:"first_name" validate:"required,min=3,max=50"`
-	LastName  string `json:"last_name" validate:"required,min=3,max=50"`
-	Role      string `json:"role" validate:"required,oneof=student admin mentor"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	// FirstName string `json:"first_name"`
+	// LastName  string `json:"last_name"`
+	// Role      string `json:"role"`
 }
 
 type UserSignin struct {
@@ -38,3 +48,29 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
+
+// func AdminLogin(db *gorm.DB) {
+// 	var admin entity.User
+// 	db.Where("role = ?", admin).First(&admin)
+
+// 	if admin.UserID == 0 {
+// 		admin = entity.User{
+// 			Username:  "admin",
+// 			Email:     "superadmin@mail.com",
+// 			FirstName: "Super",
+// 			LastName:  "Admin",
+// 			Password:  "securepassword",
+// 			Role:      entity.Admin,
+// 			CreatedAt: time.Now(),
+// 			UpdatedAt: time.Now(),
+// 		}
+
+// 		if err := db.Create(&admin).Error; err != nil {
+// 			fmt.Println("Error creating super admin:", err)
+// 		} else {
+// 			fmt.Println("Super admin created successfully")
+// 		}
+// 	} else {
+// 		fmt.Println("Super admin already exist.")
+// 	}
+// }

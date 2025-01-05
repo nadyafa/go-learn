@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/nadyafa/go-learn/config/helper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -27,7 +26,8 @@ func DBInit() (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		helper.Logger(helper.LoggerLevelPanic, fmt.Sprintf("Cannot connect to database : %s", err.Error()), err)
+		return nil, err
+		// helper.Logger(helper.LoggerLevelPanic, fmt.Sprintf("Cannot connect to database : %s", err.Error()), err)
 
 		// panic(err)
 	}
