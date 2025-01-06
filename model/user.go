@@ -38,29 +38,3 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
-
-// func AdminLogin(db *gorm.DB) {
-// 	var admin entity.User
-// 	db.Where("role = ?", admin).First(&admin)
-
-// 	if admin.UserID == 0 {
-// 		admin = entity.User{
-// 			Username:  "admin",
-// 			Email:     "superadmin@mail.com",
-// 			FirstName: "Super",
-// 			LastName:  "Admin",
-// 			Password:  "securepassword",
-// 			Role:      entity.Admin,
-// 			CreatedAt: time.Now(),
-// 			UpdatedAt: time.Now(),
-// 		}
-
-// 		if err := db.Create(&admin).Error; err != nil {
-// 			fmt.Println("Error creating super admin:", err)
-// 		} else {
-// 			fmt.Println("Super admin created successfully")
-// 		}
-// 	} else {
-// 		fmt.Println("Super admin already exist.")
-// 	}
-// }

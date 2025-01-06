@@ -1,7 +1,10 @@
 package controller
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -14,6 +17,7 @@ import (
 type UserController interface {
 	UserSignup(ctx *gin.Context)
 	UserSignin(ctx *gin.Context)
+	AdminLogin()
 }
 
 type UserControllerImpl struct {
@@ -153,4 +157,42 @@ func (c *UserControllerImpl) UserSignin(ctx *gin.Context) {
 		"email":    exitingUser.Email,
 		"message":  "User signed in successfully",
 	})
+}
+
+// generate super admin
+func (c *UserControllerImpl) AdminLogin() {
+	var admin entity.User
+
+	// check super admin existance in db
+	var count int64
+	c.db.Model(&admin).Where("role = ?", entity.Admin).Count(&count)
+	if count > 0 {
+		log.Println("Super admin already exist")
+		return
+	}
+
+	// plan password
+	password := os.Getenv("ADMIN_PASSWORD")
+
+	// hashing password before storing
+	hashedPassword, err := middleware.HashPassword(password)
+	if err != nil {
+		log.Fatal("Error hashing password:", err)
+		return
+	}
+
+	// create super admin
+	admin = entity.User{
+		UserID:   0,
+		Username: os.Getenv("ADMIN_USERNAME"),
+		Email:    os.Getenv("ADMIN_EMAIL"),
+		Password: hashedPassword,
+		Role:     entity.Admin,
+	}
+
+	if err := c.db.Create(&admin).Error; err != nil {
+		fmt.Println("Error creating super admin:", err)
+	} else {
+		fmt.Println("Super admin created successfully")
+	}
 }

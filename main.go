@@ -52,6 +52,7 @@ func main() {
 	// users
 	r.POST("/signup", userController.UserSignup)
 	r.POST("/signin", userController.UserSignin)
+	userController.AdminLogin()
 
 	r.Run()
 }
