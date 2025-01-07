@@ -26,13 +26,10 @@ type UserReqUpdate struct {
 }
 
 type UserResponse struct {
-	UserID    uint   `json:"user_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Password  string `json:"password"`
-	Role      string `json:"role"`
+	UserID   uint   `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
 	// Description string    `json:"description"`
 	// Image_path  string    `json:"image_path"`
 	CreatedAt time.Time `json:"created_at"`

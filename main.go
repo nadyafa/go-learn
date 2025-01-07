@@ -48,11 +48,16 @@ func main() {
 	// userRepo := repository.NewUserRepo(dbInit)
 	// userService := service.NewUserService(userRepo)
 	userController := controller.NewUserController(dbInit)
+	adminController := controller.NewAdminController(dbInit)
 
 	// users
 	r.POST("/signup", userController.UserSignup)
 	r.POST("/signin", userController.UserSignin)
-	userController.AdminLogin()
+	r.POST("/signout", userController.UserSignout)
+
+	adminController.GenerateAdmin()
+
+	r.PUT("/admin/users/:user_id", controller.AuthMiddleware, adminController.UpdateUserRoleByAdmin)
 
 	r.Run()
 }
