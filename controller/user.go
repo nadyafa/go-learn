@@ -17,6 +17,7 @@ import (
 type AdminController interface {
 	GenerateAdmin()
 	GetUsers(ctx *gin.Context)
+	GetUserByID(ctx *gin.Context)
 	UpdateUserRoleByID(ctx *gin.Context)
 	DeleteUserByID(ctx *gin.Context)
 }
@@ -120,7 +121,6 @@ func (c *AdminControllerImpl) GenerateAdmin() {
 	}
 }
 
-// update user role by their ID
 func (c *AdminControllerImpl) GetUsers(ctx *gin.Context) {
 	// check if the current user is admin
 	claims, _ := ctx.Get("currentUser")
@@ -129,7 +129,6 @@ func (c *AdminControllerImpl) GetUsers(ctx *gin.Context) {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"message": "Only admin can get users data",
 			"code":    http.StatusForbidden,
-			"role":    userClaims.Role,
 		})
 		return
 	}
@@ -153,6 +152,45 @@ func (c *AdminControllerImpl) GetUsers(ctx *gin.Context) {
 	})
 }
 
+// only admin and mentor can see UserByID
+func (c *AdminControllerImpl) GetUserByID(ctx *gin.Context) {
+	// get userId
+	userID := ctx.Param("user_id")
+
+	// get currentUser info (userID and role)
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+
+	fmt.Println("User Claims:", userClaims)
+
+	// check if the current user is student
+	if !ok || userClaims.Role == entity.Student {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"message": "Access Restricted",
+			"code":    http.StatusForbidden,
+			"claims":  userClaims.Role,
+		})
+		return
+	}
+
+	// find user by input param userId
+	var user entity.User
+	if err := c.db.First(&user, userID).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": "User not found",
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
+	// succeed response
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Users fetch successfully",
+		"code":    http.StatusOK,
+		"data":    user,
+	})
+}
+
 // update user role by their ID
 func (c *AdminControllerImpl) UpdateUserRoleByID(ctx *gin.Context) {
 	// check if the current user is admin
@@ -162,7 +200,6 @@ func (c *AdminControllerImpl) UpdateUserRoleByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"message": "Only admin can update user role",
 			"code":    http.StatusForbidden,
-			"role":    userClaims.Role,
 		})
 		return
 	}
@@ -235,7 +272,6 @@ func (c *AdminControllerImpl) DeleteUserByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"message": "Only admin can delete user",
 			"code":    http.StatusForbidden,
-			"role":    userClaims.Role,
 		})
 		return
 	}
