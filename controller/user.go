@@ -15,8 +15,10 @@ import (
 )
 
 type AdminController interface {
-	UpdateUserRoleByAdmin(ctx *gin.Context)
 	GenerateAdmin()
+	GetUsers(ctx *gin.Context)
+	UpdateUserRoleByID(ctx *gin.Context)
+	DeleteUserByID(ctx *gin.Context)
 }
 
 type AdminControllerImpl struct {
@@ -119,7 +121,40 @@ func (c *AdminControllerImpl) GenerateAdmin() {
 }
 
 // update user role by their ID
-func (c *AdminControllerImpl) UpdateUserRoleByAdmin(ctx *gin.Context) {
+func (c *AdminControllerImpl) GetUsers(ctx *gin.Context) {
+	// check if the current user is admin
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+	if !ok || userClaims.Role != entity.Admin {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"message": "Only admin can get users data",
+			"code":    http.StatusForbidden,
+			"role":    userClaims.Role,
+		})
+		return
+	}
+
+	// get users
+	var users []entity.User
+
+	if err := c.db.Find(&users).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to retrieve users",
+			"code":    http.StatusInternalServerError,
+		})
+		return
+	}
+
+	// succeed response
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Users fetch successfully",
+		"code":    http.StatusOK,
+		"data":    users,
+	})
+}
+
+// update user role by their ID
+func (c *AdminControllerImpl) UpdateUserRoleByID(ctx *gin.Context) {
 	// check if the current user is admin
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
@@ -189,5 +224,46 @@ func (c *AdminControllerImpl) UpdateUserRoleByAdmin(ctx *gin.Context) {
 		"message": fmt.Sprintf("UserID %s role updated successfully", userID),
 		"code":    http.StatusOK,
 		"data":    userUpdate,
+	})
+}
+
+func (c *AdminControllerImpl) DeleteUserByID(ctx *gin.Context) {
+	// check if the current user is admin
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+	if !ok || userClaims.Role != entity.Admin {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"message": "Only admin can delete user",
+			"code":    http.StatusForbidden,
+			"role":    userClaims.Role,
+		})
+		return
+	}
+
+	// get userId
+	userID := ctx.Param("user_id")
+
+	// find user by input param userId
+	var user entity.User
+	if err := c.db.First(&user, userID).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": "User not found",
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
+	// delete user from db
+	if err := c.db.Delete(&user).Where("user_id = ?", userID).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to delete user with ID %s", userID),
+			"code":  http.StatusInternalServerError,
+		})
+		return
+	}
+
+	// succeed response
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("UserID %s has been deleted", userID),
 	})
 }

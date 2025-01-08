@@ -58,10 +58,10 @@ func main() {
 
 	// user
 	adminController.GenerateAdmin()
-	// r.GET("/users", controller.AuthMiddleware, adminController.GetAllUsers)
+	r.GET("/users", middleware.AuthMiddleware, adminController.GetUsers)
 	// r.GET("/users/:user_id", adminController.GetUserByID)
-	r.PUT("/users/:user_id", middleware.AuthMiddleware, adminController.UpdateUserRoleByAdmin)
-	// r.DELETE("/users/:user_id", controller.AuthMiddleware, adminController.DeleteUserByID)
+	r.PUT("/users/:user_id", middleware.AuthMiddleware, adminController.UpdateUserRoleByID)
+	r.DELETE("/users/:user_id", middleware.AuthMiddleware, adminController.DeleteUserByID)
 
 	// course
 	// r.GET("/courses", courseController.GetAllCourses)
