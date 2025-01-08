@@ -151,7 +151,7 @@ func (c *UserControllerImpl) UserSignin(ctx *gin.Context) {
 	}
 
 	// generate jwt token
-	token, err := middleware.GenerateJWT(&exitingUser)
+	token, err := middleware.GenerateJWT(exitingUser.Username, exitingUser.Role, exitingUser.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Unable generate token",

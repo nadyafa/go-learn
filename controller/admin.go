@@ -29,6 +29,57 @@ func NewAdminController(db *gorm.DB) AdminController {
 	}
 }
 
+// // create new user
+// func (c *AdminControllerImpl) CreateNewUser(ctx *gin.Context) {
+// 	// check if the currentUser is admin
+// 	claims, _ := ctx.Get("currentUser")
+// 	userClaims, ok := claims.(*middleware.UserClaims)
+// 	if !ok || userClaims.Role != entity.Admin {
+// 		ctx.JSON(http.StatusForbidden, gin.H{
+// 			"error": "Only admin can create a new user",
+// 			"code":  http.StatusForbidden,
+// 		})
+// 		return
+// 	}
+
+// 	// bind user input
+// 	var user model.UserSignup
+// 	if err := ctx.ShouldBindJSON(&user); err != nil {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{
+// 			"error": err.Error(),
+// 			"code":  http.StatusBadRequest,
+// 		})
+// 		return
+// 	}
+
+// 	// hashing password input
+// 	hashedPassword, err := middleware.HashPassword(user.Password)
+// 	if err != nil {
+// 		ctx.JSON(http.StatusInternalServerError, gin.H{
+// 			"error": "Unable to hash password",
+// 			"code":  http.StatusInternalServerError,
+// 		})
+// 		return
+// 	}
+
+// 	user.Password = hashedPassword
+
+// 	// add new user to db
+// 	if err := c.db.Create(&user).Error; err != nil {
+// 		ctx.JSON(http.StatusInternalServerError, gin.H{
+// 			"error": "Unable to create a new user",
+// 			"code":  http.StatusInternalServerError,
+// 		})
+// 		return
+// 	}
+
+// 	// success response
+// 	ctx.JSON(http.StatusCreated, gin.H{
+// 		"message": "User created successfully",
+// 		"user":    user,
+// 	})
+// }
+
 // generate super admin
 func (c *AdminControllerImpl) GenerateAdmin() {
 	var admin entity.User
@@ -70,12 +121,13 @@ func (c *AdminControllerImpl) GenerateAdmin() {
 // update user role by their ID
 func (c *AdminControllerImpl) UpdateUserRoleByAdmin(ctx *gin.Context) {
 	// check if the current user is admin
-	currentUser := ctx.MustGet("currentUser").(*entity.User)
-
-	if currentUser.Role != "admin" {
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+	if !ok || userClaims.Role != entity.Admin {
 		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "User unauthorized to perform this action",
-			"code":  http.StatusForbidden,
+			"message": "Only admin can update user role",
+			"code":    http.StatusForbidden,
+			"role":    userClaims.Role,
 		})
 		return
 	}

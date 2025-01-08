@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/nadyafa/go-learn/config/db"
 	"github.com/nadyafa/go-learn/controller"
+	"github.com/nadyafa/go-learn/middleware"
 )
 
 func main() {
@@ -50,14 +51,23 @@ func main() {
 	userController := controller.NewUserController(dbInit)
 	adminController := controller.NewAdminController(dbInit)
 
-	// users
+	// auth
 	r.POST("/signup", userController.UserSignup)
 	r.POST("/signin", userController.UserSignin)
 	r.POST("/signout", userController.UserSignout)
 
+	// user
 	adminController.GenerateAdmin()
+	// r.GET("/users", controller.AuthMiddleware, adminController.GetAllUsers)
+	// r.GET("/users/:user_id", adminController.GetUserByID)
+	r.PUT("/users/:user_id", middleware.AuthMiddleware, adminController.UpdateUserRoleByAdmin)
+	// r.DELETE("/users/:user_id", controller.AuthMiddleware, adminController.DeleteUserByID)
 
-	r.PUT("/admin/users/:user_id", controller.AuthMiddleware, adminController.UpdateUserRoleByAdmin)
+	// course
+	// r.GET("/courses", courseController.GetAllCourses)
+	// r.GET("/courses/:course_id", courseController.GetCourseByID)
+	// r.PUT("/courses/:course_id", controller.AuthMiddleware, courseController.UpdateCourse) //admin & mentor
+	// r.DELETE("/courses/:user_id", controller.AuthMiddleware, courseController.DeleteCourseByID) //admin only
 
 	r.Run()
 }
