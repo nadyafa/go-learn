@@ -8,7 +8,7 @@ import (
 func RunMigration(db *gorm.DB) {
 	db.AutoMigrate(
 		&entity.User{},
-		// &entity.Course{},
+		&entity.Course{},
 		// &entity.Class{},
 		// &entity.Project{},
 		// &entity.Test{},

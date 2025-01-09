@@ -25,7 +25,7 @@ type User struct {
 
 	// Enrollments []Enrollment `gorm:"foreignKey:StudentID"`
 	// Classes     []Class      `gorm:"foreignKey:MentorID"`
-	// Courses     []Course     `gorm:"many2many:course_enrollments"`
+	// Courses []Course `gorm:"many2many:course_enrollments"`
 	// Projects    []Project    `gorm:"foreignKey:CourseID"`
 	// Attendances []Attendance `gorm:"foreignKey:StudentID"`
 }

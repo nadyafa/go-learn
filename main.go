@@ -50,6 +50,7 @@ func main() {
 	// userService := service.NewUserService(userRepo)
 	userController := controller.NewUserController(dbInit)
 	adminController := controller.NewAdminController(dbInit)
+	courseController := controller.NewCourseController(dbInit)
 
 	// auth
 	r.POST("/signup", userController.UserSignup)
@@ -66,6 +67,7 @@ func main() {
 	r.GET("/users/:user_id", middleware.AuthMiddleware, adminController.GetUserByID)
 
 	// course
+	r.POST("/courses", middleware.AuthMiddleware, courseController.CreateCourse)
 	// r.GET("/courses", courseController.GetAllCourses)
 	// r.GET("/courses/:course_id", courseController.GetCourseByID)
 	// r.PUT("/courses/:course_id", controller.AuthMiddleware, courseController.UpdateCourse) //admin & mentor

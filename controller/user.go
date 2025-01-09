@@ -161,14 +161,11 @@ func (c *AdminControllerImpl) GetUserByID(ctx *gin.Context) {
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
 
-	fmt.Println("User Claims:", userClaims)
-
 	// check if the current user is student
 	if !ok || userClaims.Role == entity.Student {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"message": "Access Restricted",
 			"code":    http.StatusForbidden,
-			"claims":  userClaims.Role,
 		})
 		return
 	}
