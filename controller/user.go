@@ -182,7 +182,7 @@ func (c *AdminControllerImpl) GetUserByID(ctx *gin.Context) {
 
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Users fetch successfully",
+		"message": "User fetch successfully",
 		"code":    http.StatusOK,
 		"data":    user,
 	})
@@ -287,7 +287,7 @@ func (c *AdminControllerImpl) DeleteUserByID(ctx *gin.Context) {
 	}
 
 	// delete user from db
-	if err := c.db.Delete(&user).Where("user_id = ?", userID).Error; err != nil {
+	if err := c.db.Delete(&user).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to delete user with ID %s", userID),
 			"code":  http.StatusInternalServerError,

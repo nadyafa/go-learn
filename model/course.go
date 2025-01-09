@@ -11,6 +11,12 @@ type CourseReq struct {
 	StartDate   customTime `json:"start_date" validate:"required"`
 	EndDate     customTime `json:"end_date" validate:"required"`
 }
+type UpdateCourse struct {
+	CourseName  string     `json:"course_name" validate:"required"`
+	Description string     `json:"description"`
+	StartDate   customTime `json:"start_date" validate:"required"`
+	EndDate     customTime `json:"end_date" validate:"required"`
+}
 
 type CourseResp struct {
 	CourseID    uint      `json:"course_id"`

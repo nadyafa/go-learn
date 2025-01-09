@@ -6,12 +6,17 @@ import (
 	"time"
 )
 
-func ValidateCourse(courseName, startDateStr, endDateStr string) (bool, string) {
+func ValidateCourseName(courseName string) (bool, string) {
 	// if course name empty
 	if strings.TrimSpace(courseName) == "" {
 		return false, "Course name cannot be empty"
 	}
 
+	// if all validation passed
+	return true, ""
+}
+
+func ValidateCourseDate(startDateStr, endDateStr string) (bool, string) {
 	// validate startDate & endDate format
 	layout := "02-01-2006 15:04"
 	startDate, err := time.Parse(layout, startDateStr)

@@ -68,10 +68,10 @@ func main() {
 
 	// course
 	r.POST("/courses", middleware.AuthMiddleware, courseController.CreateCourse)
-	// r.GET("/courses", courseController.GetAllCourses)
-	// r.GET("/courses/:course_id", courseController.GetCourseByID)
-	// r.PUT("/courses/:course_id", controller.AuthMiddleware, courseController.UpdateCourse) //admin & mentor
-	// r.DELETE("/courses/:user_id", controller.AuthMiddleware, courseController.DeleteCourseByID) //admin only
+	r.GET("/courses", middleware.AuthMiddleware, courseController.GetCourses)
+	r.GET("/courses/:course_id", middleware.AuthMiddleware, courseController.GetCourseByID)
+	r.PUT("/courses/:course_id", middleware.AuthMiddleware, courseController.UpdateCourseByID)    //admin & mentor
+	r.DELETE("/courses/:course_id", middleware.AuthMiddleware, courseController.DeleteCourseByID) //admin only
 
 	r.Run()
 }
