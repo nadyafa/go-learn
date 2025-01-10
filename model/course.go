@@ -1,21 +1,22 @@
 package model
 
 import (
-	"fmt"
 	"time"
+
+	"github.com/nadyafa/go-learn/middleware"
 )
 
 type CourseReq struct {
-	CourseName  string     `json:"course_name" validate:"required"`
-	Description string     `json:"description"`
-	StartDate   customTime `json:"start_date" validate:"required"`
-	EndDate     customTime `json:"end_date" validate:"required"`
+	CourseName  string                `json:"course_name" validate:"required"`
+	Description string                `json:"description"`
+	StartDate   middleware.CustomTime `json:"start_date" validate:"required"`
+	EndDate     middleware.CustomTime `json:"end_date" validate:"required"`
 }
 type UpdateCourse struct {
-	CourseName  string     `json:"course_name" validate:"required"`
-	Description string     `json:"description"`
-	StartDate   customTime `json:"start_date" validate:"required"`
-	EndDate     customTime `json:"end_date" validate:"required"`
+	CourseName  string                `json:"course_name" validate:"required"`
+	Description string                `json:"description"`
+	StartDate   middleware.CustomTime `json:"start_date" validate:"required"`
+	EndDate     middleware.CustomTime `json:"end_date" validate:"required"`
 }
 
 type CourseResp struct {
@@ -26,19 +27,4 @@ type CourseResp struct {
 	EndDate     time.Time `json:"end_date"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
-}
-
-type customTime struct {
-	time.Time
-}
-
-func (c *customTime) UnmarshalJSON(b []byte) error {
-	layout := "02-01-2006 15:04" //dd-mm-yyyy hour:minute
-	parseTime, err := time.Parse(fmt.Sprintf("\"%s\"", layout), string(b))
-	if err != nil {
-		return fmt.Errorf("date time format input invalid. expected format: %s", layout)
-	}
-
-	c.Time = parseTime
-	return nil
 }
