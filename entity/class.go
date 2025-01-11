@@ -8,13 +8,13 @@ type Class struct {
 	ClassName   string `json:"class_name" gorm:"notNull"`
 	Description string `json:"description" gorm:"omitempty"`
 
-	// MentorID uint `json:"mentor_id" gorm:"notNull"`
-	// Mentor User `gorm:"foreignKey:MentorID"`
+	MentorID uint `json:"mentor_id" gorm:"notNull"`
+	Mentor   User `gorm:"foreignKey:MentorID"`
 
 	StartDate time.Time `json:"start_date"`
 	EndDate   time.Time `json:"end_date"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	// Attendances []Attendance `gorm:"foreignKey:ClassID;"`
+	Attendances []Attendance `gorm:"foreignKey:ClassID;"`
 }

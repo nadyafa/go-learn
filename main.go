@@ -52,6 +52,7 @@ func main() {
 	adminController := controller.NewAdminController(dbInit)
 	courseController := controller.NewCourseController(dbInit)
 	classController := controller.NewClassController(dbInit)
+	attendanceController := controller.NewAttendController(dbInit)
 
 	// auth
 	r.POST("/signup", userController.UserSignup)
@@ -81,12 +82,12 @@ func main() {
 	r.PUT("/:course_id/classes/:class_id", middleware.AuthMiddleware, classController.UpdateClassByID)    //admin & mentor
 	r.DELETE("/:course_id/classes/:class_id", middleware.AuthMiddleware, classController.DeleteClassByID) //admin & mentor
 
-	// quiz
-	// r.POST("/:course_id/quizzes", middleware.AuthMiddleware, quizController.CreateQuiz) //admin & mentor
-	// r.GET("/:course_id/quizzes", middleware.AuthMiddleware, quizController.GetQuizzes)
-	// r.GET("/:course_id/quizzes/:quiz_id", middleware.AuthMiddleware, quizController.GetQuizByID)
-	// r.PUT("/:course_id/quizzes/:quiz_id", middleware.AuthMiddleware, quizController.UpdateQuizByID) //admin & mentor
-	// r.DELETE("/:course_id/quizzes/:quiz_id", middleware.AuthMiddleware, quizController.DeleteQuizByID) //admin & mentor
+	// assignment
+	// r.POST("/:course_id/assignments", middleware.AuthMiddleware, assignmentController.CreateAssignment) //admin & mentor
+	// r.GET("/:course_id/assignments", middleware.AuthMiddleware, assignmentController.GetAssignments)
+	// r.GET("/:course_id/assignments/:assignment_id", middleware.AuthMiddleware, assignmentController.GetAssignmentByID)
+	// r.PUT("/:course_id/assignments/:assignment_id", middleware.AuthMiddleware, assignmentController.UpdateAssignmentByID) //admin & mentor
+	// r.DELETE("/:course_id/assignments/:assignment_id", middleware.AuthMiddleware, assignmentController.DeleteAssignmentByID) //admin & mentor
 
 	// project
 	// r.POST("/:course_id/projects", middleware.AuthMiddleware, projectController.CreateProject) //admin & mentor
@@ -95,8 +96,10 @@ func main() {
 	// r.PUT("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.UpdateProjectByID) //admin & mentor
 	// r.DELETE("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.DeleteProjectByID) //admin & mentor
 
-	// quiz sub
-	// r.POST("/:course_id/projects", middleware.AuthMiddleware, projectController.CreateProject) //admin & mentor
+	// attendance
+	r.POST("/:course_id/classes/:class_id/attendances", middleware.AuthMiddleware, attendanceController.StudentAttendClass)                    //admin & student
+	r.GET("/:course_id/classes/:class_id/attendances", middleware.AuthMiddleware, attendanceController.GetClassAttendances)                    //admin & mentor
+	r.DELETE("/:course_id/classes/:class_id/attendances/:attendance_id", middleware.AuthMiddleware, attendanceController.DeleteAttendanceByID) //admin
 
 	r.Run()
 }

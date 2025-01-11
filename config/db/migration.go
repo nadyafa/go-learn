@@ -15,6 +15,6 @@ func RunMigration(db *gorm.DB) {
 		// &entity.Enrollment{},
 		// &entity.ProjectSub{},
 		// &entity.TestSub{},
-		// &entity.Attendance{},
+		&entity.Attendance{},
 	)
 }

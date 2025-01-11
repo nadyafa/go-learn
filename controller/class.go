@@ -84,10 +84,16 @@ func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
 		return
 	}
 
+	// a mentor only able to create class for themselves
+	if userClaims.Role == entity.Mentor {
+		classReq.MentorID = userClaims.UserID
+	}
+
 	// add new course to db
 	class := entity.Class{
 		ClassName:   classReq.ClassName,
 		Description: classReq.Description,
+		MentorID:    classReq.MentorID,
 		StartDate:   classReq.StartDate.Time,
 		EndDate:     classReq.EndDate.Time,
 		CourseID:    course.CourseID,
@@ -107,6 +113,7 @@ func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
 		CourseID:    class.CourseID,
 		ClassName:   class.ClassName,
 		Description: class.Description,
+		MentorID:    class.MentorID,
 		StartDate:   class.StartDate,
 		EndDate:     class.EndDate,
 		CreatedAt:   class.CreatedAt,
@@ -188,7 +195,7 @@ func (c *ClassControllerImpl) GetClassByID(ctx *gin.Context) {
 
 	// get class
 	classID := ctx.Param("class_id")
-	var class []entity.Class
+	var class entity.Class
 
 	if err := c.db.Find(&class, classID).Where("course_id = ?", courseID).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
@@ -198,11 +205,23 @@ func (c *ClassControllerImpl) GetClassByID(ctx *gin.Context) {
 		return
 	}
 
+	classResp := model.ClassResp{
+		ClassID:     class.ClassID,
+		CourseID:    class.CourseID,
+		ClassName:   class.ClassName,
+		Description: class.Description,
+		MentorID:    class.MentorID,
+		StartDate:   class.StartDate,
+		EndDate:     class.EndDate,
+		CreatedAt:   class.CreatedAt,
+		UpdatedAt:   class.UpdatedAt,
+	}
+
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Class fetch successfully",
 		"code":    http.StatusOK,
-		"data":    class,
+		"data":    classResp,
 	})
 }
 
@@ -282,6 +301,13 @@ func (c *ClassControllerImpl) UpdateClassByID(ctx *gin.Context) {
 
 	existingClass.UpdatedAt = time.Now()
 
+	// a mentor only able to create class for themselves
+	if userClaims.Role == entity.Mentor {
+		existingClass.MentorID = userClaims.UserID
+	} else {
+		existingClass.MentorID = classReq.MentorID
+	}
+
 	// update class to db
 	if err := c.db.Save(&existingClass).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -297,10 +323,11 @@ func (c *ClassControllerImpl) UpdateClassByID(ctx *gin.Context) {
 		CourseID:    existingClass.CourseID,
 		ClassName:   existingClass.ClassName,
 		Description: existingClass.Description,
+		MentorID:    existingClass.MentorID,
 		StartDate:   existingClass.StartDate,
 		EndDate:     existingClass.EndDate,
 		CreatedAt:   existingClass.CreatedAt,
-		UpdatedAt:   existingClass.UpdatedAt,
+		UpdatedAt:   time.Now(),
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{

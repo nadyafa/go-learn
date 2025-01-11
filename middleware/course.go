@@ -37,3 +37,13 @@ func ValidateCourseDate(startDateStr, endDateStr string) (bool, string) {
 	// if all validation passed
 	return true, ""
 }
+
+// func ValidateBoolean(input string) (bool, error) {
+// 	input = strings.ToLower(input)
+
+// 	if input == "true" || input == "false" {
+// 		return true, nil
+// 	}
+
+// 	return false, errors.New("input must be 'true' or 'false'")
+// }

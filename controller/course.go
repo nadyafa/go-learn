@@ -104,12 +104,12 @@ func (c *CourseControllerImpl) CreateCourse(ctx *gin.Context) {
 	})
 }
 
-// get all course (admin only)
+// get all course (for all)
 func (c *CourseControllerImpl) GetCourses(ctx *gin.Context) {
 	// check if the currentUser is admin
 	claims, _ := ctx.Get("currentUser")
-	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role != entity.Admin {
+	_, ok := claims.(*middleware.UserClaims)
+	if !ok {
 		ctx.JSON(http.StatusForbidden, gin.H{
 			"error": "Only admin can create a new course",
 			"code":  http.StatusForbidden,
@@ -138,9 +138,6 @@ func (c *CourseControllerImpl) GetCourses(ctx *gin.Context) {
 
 // get course by id (for all)
 func (c *CourseControllerImpl) GetCourseByID(ctx *gin.Context) {
-	// get courseID
-	courseID := ctx.Param("course_id")
-
 	// make sure user has signed in
 	claims, _ := ctx.Get("currentUser")
 	_, ok := claims.(*middleware.UserClaims)
@@ -152,8 +149,11 @@ func (c *CourseControllerImpl) GetCourseByID(ctx *gin.Context) {
 		return
 	}
 
+	// get courseID
+	courseID := ctx.Param("course_id")
+
 	// get courses
-	var course []entity.Course
+	var course entity.Course
 
 	if err := c.db.Find(&course, courseID).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
