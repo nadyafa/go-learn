@@ -141,7 +141,7 @@ func (c *AttendControllerImpl) GetClassAttendances(ctx *gin.Context) {
 	userClaims, ok := claims.(*middleware.UserClaims)
 	if !ok || userClaims.Role == entity.Student {
 		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Only admin can create a new course",
+			"error": "Access Restricted",
 			"code":  http.StatusForbidden,
 		})
 		return
@@ -184,7 +184,7 @@ func (c *AttendControllerImpl) GetClassAttendances(ctx *gin.Context) {
 	// get attendances model
 	var attendances []entity.Attendance
 
-	if err := c.db.Find(&attendances).Error; err != nil {
+	if err := c.db.Where("class_id = ?", classID).Find(&attendances).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to retrieve list class attendances",
 			"code":    http.StatusInternalServerError,

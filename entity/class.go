@@ -16,5 +16,6 @@ type Class struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	Attendances []Attendance `gorm:"foreignKey:ClassID;"`
+	Attendances []Attendance `gorm:"foreignKey:ClassID;constrain:OnUpdate:CASCADE"` //ori one2many
+	// Attendance Attendance `gorm:"foreignKey:ClassID"`
 }

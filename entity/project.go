@@ -21,6 +21,8 @@ type ProjectSub struct {
 	StudentID      uint      `json:"student_id" gorm:"index;notNull"`
 	SubmissionDate time.Time `json:"submission_date" gorm:"notNull"`
 	Score          int       `json:"score" gorm:"default:0"`
+	Description    string    `json:"description" gorm:"omitempty"`
+	ProjectPath    string    `json:"project_path" gorm:"notNull"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }

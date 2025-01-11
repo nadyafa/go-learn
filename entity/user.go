@@ -24,8 +24,8 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Enrollments []Enrollment `gorm:"foreignKey:StudentID"`
-	Classes []Class `gorm:"foreignKey:MentorID"`
-	// Courses []Course `gorm:"many2many:course_enrollments"`
-	// Projects    []Project    `gorm:"foreignKey:CourseID"`
-	Attendances []Attendance `gorm:"foreignKey:StudentID"`
+	Classes []Class `gorm:"foreignKey:MentorID;constrain:OnUpdate:CASCADE"`
+	// Courses     []Course     `gorm:"many2many:course_enrollments"`
+	Projects    []Project    `gorm:"foreignKey:CourseID;constrain:OnUpdate:CASCADE"`
+	Attendances []Attendance `gorm:"foreignKey:StudentID;constrain:OnUpdate:CASCADE"`
 }

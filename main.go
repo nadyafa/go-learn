@@ -53,6 +53,8 @@ func main() {
 	courseController := controller.NewCourseController(dbInit)
 	classController := controller.NewClassController(dbInit)
 	attendanceController := controller.NewAttendController(dbInit)
+	projectController := controller.NewProjectController(dbInit)
+	projectSubController := controller.NewProjectSubController(dbInit)
 
 	// auth
 	r.POST("/signup", userController.UserSignup)
@@ -82,24 +84,29 @@ func main() {
 	r.PUT("/:course_id/classes/:class_id", middleware.AuthMiddleware, classController.UpdateClassByID)    //admin & mentor
 	r.DELETE("/:course_id/classes/:class_id", middleware.AuthMiddleware, classController.DeleteClassByID) //admin & mentor
 
-	// assignment
-	// r.POST("/:course_id/assignments", middleware.AuthMiddleware, assignmentController.CreateAssignment) //admin & mentor
-	// r.GET("/:course_id/assignments", middleware.AuthMiddleware, assignmentController.GetAssignments)
-	// r.GET("/:course_id/assignments/:assignment_id", middleware.AuthMiddleware, assignmentController.GetAssignmentByID)
-	// r.PUT("/:course_id/assignments/:assignment_id", middleware.AuthMiddleware, assignmentController.UpdateAssignmentByID) //admin & mentor
-	// r.DELETE("/:course_id/assignments/:assignment_id", middleware.AuthMiddleware, assignmentController.DeleteAssignmentByID) //admin & mentor
-
 	// project
-	// r.POST("/:course_id/projects", middleware.AuthMiddleware, projectController.CreateProject) //admin & mentor
-	// r.GET("/:course_id/projects", middleware.AuthMiddleware, projectController.Getprojects)
-	// r.GET("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.GetProjectByID)
-	// r.PUT("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.UpdateProjectByID) //admin & mentor
-	// r.DELETE("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.DeleteProjectByID) //admin & mentor
+	r.POST("/:course_id/projects", middleware.AuthMiddleware, projectController.CreateProject) //admin & mentor
+	r.GET("/:course_id/projects", middleware.AuthMiddleware, projectController.GetProjects)
+	r.GET("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.GetProjectByID)
+	r.PUT("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.UpdateProject)        //admin & mentor
+	r.DELETE("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.DeleteProjectByID) //admin & mentor
+
+	// projectSub
+	r.POST("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.StudentSubmitProject) //student only
+	// r.POST("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.MentorSubmitGrade) //admin & mentor
+	// r.GET("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.GetProjectSubmissions) //for all
+	// r.GET("/:course_id/projects/:project_id/submission/:project_sub_id", middleware.AuthMiddleware, projectSubController.GetProjectSubmissionByID) //for all
+	// r.DELETE("/:course_id/projects/:project_id/submission/:project_sub_id", middleware.AuthMiddleware, projectSubController.DeleteProjectSubmissionByID) //admin only
 
 	// attendance
 	r.POST("/:course_id/classes/:class_id/attendances", middleware.AuthMiddleware, attendanceController.StudentAttendClass)                    //admin & student
 	r.GET("/:course_id/classes/:class_id/attendances", middleware.AuthMiddleware, attendanceController.GetClassAttendances)                    //admin & mentor
 	r.DELETE("/:course_id/classes/:class_id/attendances/:attendance_id", middleware.AuthMiddleware, attendanceController.DeleteAttendanceByID) //admin
+
+	// enrollment
+	// r.POST("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.StudentAttendClass) //admin & student
+	// r.GET("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.GetEnrollments) //admin & student
+	// r.DELETE("/:course_id/enrollments/:enrollment_id", middleware.AuthMiddleware, attendanceController.StudentAttendClass) //admin
 
 	r.Run()
 }

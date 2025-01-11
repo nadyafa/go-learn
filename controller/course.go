@@ -69,6 +69,7 @@ func (c *CourseControllerImpl) CreateCourse(ctx *gin.Context) {
 			"error": validationMsg,
 			"code":  http.StatusBadRequest,
 		})
+		return
 	}
 
 	// add new course to db
@@ -214,6 +215,7 @@ func (c *CourseControllerImpl) UpdateCourseByID(ctx *gin.Context) {
 			"error": validationMsg,
 			"code":  http.StatusBadRequest,
 		})
+		return
 	}
 
 	// update fields if not empty
@@ -225,11 +227,11 @@ func (c *CourseControllerImpl) UpdateCourseByID(ctx *gin.Context) {
 		existingCourse.Description = courseReq.Description
 	}
 
-	if courseReq.StartDate.IsZero() {
+	if !courseReq.StartDate.IsZero() {
 		existingCourse.StartDate = courseReq.StartDate.Time
 	}
 
-	if courseReq.EndDate.IsZero() {
+	if !courseReq.EndDate.IsZero() {
 		existingCourse.EndDate = courseReq.EndDate.Time
 	}
 

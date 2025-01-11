@@ -103,6 +103,7 @@ func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err,
 			"code":  http.StatusInternalServerError,
+			"msg":   course.CourseID,
 		})
 		return
 	}
@@ -153,7 +154,7 @@ func (c *ClassControllerImpl) GetClasses(ctx *gin.Context) {
 	// get classes
 	var classes []entity.Class
 
-	if err := c.db.Find(&classes).Error; err != nil {
+	if err := c.db.Where("course_id = ?", courseID).Find(&classes).Error; err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to retrieve classes",
 			"code":    http.StatusInternalServerError,
@@ -197,7 +198,7 @@ func (c *ClassControllerImpl) GetClassByID(ctx *gin.Context) {
 	classID := ctx.Param("class_id")
 	var class entity.Class
 
-	if err := c.db.Find(&class, classID).Where("course_id = ?", courseID).Error; err != nil {
+	if err := c.db.Where("course_id = ?", courseID).First(&class, classID).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"message": fmt.Sprintf("ClassID %s not found", classID),
 			"code":    http.StatusNotFound,

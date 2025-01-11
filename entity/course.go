@@ -11,8 +11,9 @@ type Course struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 
-	Class Class `gorm:"foreignKey:CourseID"`
+	Classes []Class `gorm:"foreignKey:CourseID"` //ori one2many
+	// Class Class `gorm:"foreignKey:CourseID"`
 	// Enrollments []Enrollment `gorm:"foreignKey:CourseID"`
-	// Projects    []Project    `gorm:"foreignKey:CourseID"`
+	Projects []Project `gorm:"foreignKey:CourseID"`
 	// Tests       []Test       `gorm:"foreignKey:CourseID"`
 }
