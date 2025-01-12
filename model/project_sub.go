@@ -20,7 +20,7 @@ type StudentSubmitResp struct {
 	ProjectPath    string    `json:"project_path"`
 }
 
-type ProjectScore struct {
+type MentorSubmitResp struct {
 	ProjectSubID   uint      `json:"project_sub_id"`
 	ProjectID      uint      `json:"project_id"`
 	StudentID      uint      `json:"student_id"`

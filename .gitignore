@@ -1,2 +1,4 @@
 .env
 go.sum
+docker-compose.yml
+Dockerfile

@@ -92,8 +92,8 @@ func main() {
 	r.DELETE("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.DeleteProjectByID) //admin & mentor
 
 	// projectSub
-	r.POST("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.StudentSubmitProject) //student only
-	// r.POST("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.MentorSubmitGrade) //admin & mentor
+	r.POST("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.StudentSubmitProject)             //student only
+	r.PUT("/:course_id/projects/:project_id/submission/:project_sub_id", middleware.AuthMiddleware, projectSubController.MentorSubmitScore) //admin & mentor
 	// r.GET("/:course_id/projects/:project_id/submission", middleware.AuthMiddleware, projectSubController.GetProjectSubmissions) //for all
 	// r.GET("/:course_id/projects/:project_id/submission/:project_sub_id", middleware.AuthMiddleware, projectSubController.GetProjectSubmissionByID) //for all
 	// r.DELETE("/:course_id/projects/:project_id/submission/:project_sub_id", middleware.AuthMiddleware, projectSubController.DeleteProjectSubmissionByID) //admin only
@@ -107,6 +107,15 @@ func main() {
 	// r.POST("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.StudentAttendClass) //admin & student
 	// r.GET("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.GetEnrollments) //admin & student
 	// r.DELETE("/:course_id/enrollments/:enrollment_id", middleware.AuthMiddleware, attendanceController.StudentAttendClass) //admin
+
+	// activity
+	// percentage student attendance based on number of class
+	// score of project
+
+	// notification
+	// notify mentor signup
+	// notify enrollment
+	// notify submission
 
 	r.Run()
 }

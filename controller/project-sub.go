@@ -16,6 +16,7 @@ import (
 
 type ProjectSubController interface {
 	StudentSubmitProject(ctx *gin.Context)
+	MentorSubmitScore(ctx *gin.Context)
 }
 
 type ProjectSubControllerImpl struct {
@@ -149,7 +150,7 @@ func (c *ProjectSubControllerImpl) StudentSubmitProject(ctx *gin.Context) {
 	}
 
 	// move file to directory uploads
-	filePath := fmt.Sprintf("uploads/%s", file.Filename)
+	filePath := fmt.Sprintf("uploads/%s", newFileName)
 	if err := ctx.SaveUploadedFile(file, filePath); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to save file",
@@ -188,3 +189,90 @@ func (c *ProjectSubControllerImpl) StudentSubmitProject(ctx *gin.Context) {
 		"user":    projectSubResp,
 	})
 }
+
+// get all student submission list (for all)
+
+// mentor scoring (mentor only)
+func (c *ProjectSubControllerImpl) MentorSubmitScore(ctx *gin.Context) {
+	// make sure user has signed in
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+	if !ok || userClaims.Role != entity.Mentor {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "Access Restricted",
+			"code":  http.StatusForbidden,
+		})
+		return
+	}
+
+	// validate courseID existance
+	courseID := ctx.Param("course_id")
+	var course entity.Course
+	if err := c.db.First(&course, courseID).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": fmt.Sprintf("CourseID %s not found", courseID),
+		})
+		return
+	}
+
+	// get project_sub_id
+	projectSubID := ctx.Param("project_sub_id")
+	var existingProjectSub entity.ProjectSub
+	if err := c.db.First(&existingProjectSub, projectSubID).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": fmt.Sprintf("ProjectSubID %s not found", projectSubID),
+		})
+		return
+	}
+
+	// get body input
+	var projectSubReq model.ProjectSubMentor
+	if err := ctx.ShouldBindJSON(&projectSubReq); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// validation score
+	if projectSubReq.Score < 0 && projectSubReq.Score > 100 {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"message": "Score must be between 0-100",
+		})
+		return
+	}
+
+	existingProjectSub.Score = projectSubReq.Score
+
+	if projectSubReq.Description != "" {
+		existingProjectSub.Description = projectSubReq.Description
+	}
+
+	// save to db
+	if err := c.db.Save(&existingProjectSub).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": fmt.Sprintf("Failed to update project submission with ID %s", projectSubID),
+			"code":    http.StatusInternalServerError,
+		})
+		return
+	}
+
+	// success response
+	projectSub := model.MentorSubmitResp{
+		ProjectSubID:   existingProjectSub.ProjectSubID,
+		ProjectID:      existingProjectSub.ProjectID,
+		StudentID:      existingProjectSub.StudentID,
+		SubmissionDate: existingProjectSub.SubmissionDate,
+		ProjectPath:    existingProjectSub.ProjectPath,
+		Score:          existingProjectSub.Score,
+		Description:    existingProjectSub.Description,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("ProjectSubID %s has been scored", projectSubID),
+		"code":    http.StatusOK,
+		"data":    projectSub,
+	})
+}
+
+// delete submission history (admin only)
