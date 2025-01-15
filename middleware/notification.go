@@ -14,7 +14,7 @@ func SendMail(toMail, subject, body string) error {
 	message := gomail.NewMessage()
 
 	// set email headers
-	message.SetHeader("From", "nadyafa795@gmail.com")
+	message.SetHeader("From", "no-reply@golearn.com")
 	message.SetHeader("To", toMail)
 	message.SetHeader("Subject", subject)
 

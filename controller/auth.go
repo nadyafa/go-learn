@@ -105,10 +105,43 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 
 	// send notification email
 	if userSignup.Role == string(entity.Mentor) {
+		// notify admin
 		err := middleware.SendMail(
 			os.Getenv("ADMIN_EMAIL"),
 			"New Mentor Sign Up Pending Validation",
 			fmt.Sprintf("A user has signup with the role of mentor. Please validate user with UserID %s and Username %s", strconv.FormatUint(uint64(user.UserID), 10), user.Username),
+		)
+
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to send notification to user",
+				"message": err.Error(),
+			})
+			return
+		}
+
+		// notify mentor
+		err = middleware.SendMail(
+			userSignup.Email,
+			"Go-Learn: User Sign Up Succeed",
+			"Thank you for signing up as a mentor in our platform. We'll inform you as soon as possible once the data is validated. Through the validation process, you can still sign up and check on our courses and platform by sign in to your account. Good luck!",
+		)
+
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to send notification to user",
+				"message": err.Error(),
+			})
+			return
+		}
+	}
+
+	if user.Role == entity.Student {
+		// notify mentor
+		err := middleware.SendMail(
+			userSignup.Email,
+			"Go-Learn: User Sign Up Succeed",
+			"Thank you for signing up as a student in our platform. Please validate your account by signing up to your account. Good luck!",
 		)
 
 		if err != nil {
