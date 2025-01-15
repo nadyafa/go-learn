@@ -1,7 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -89,6 +92,7 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 		Username: userSignup.Username,
 		Email:    userSignup.Email,
 		Password: userSignup.Password,
+		Role:     entity.Student,
 	}
 
 	if err := c.db.Create(&user).Error; err != nil {
@@ -97,6 +101,23 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 			"code":  http.StatusInternalServerError,
 		})
 		return
+	}
+
+	// send notification email
+	if userSignup.Role == string(entity.Mentor) {
+		err := middleware.SendMail(
+			os.Getenv("ADMIN_EMAIL"),
+			"New Mentor Sign Up Pending Validation",
+			fmt.Sprintf("A user has signup with the role of mentor. Please validate user with UserID %s and Username %s", strconv.FormatUint(uint64(user.UserID), 10), user.Username),
+		)
+
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to send notification to user",
+				"message": err.Error(),
+			})
+			return
+		}
 	}
 
 	// response succeed

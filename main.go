@@ -104,9 +104,8 @@ func main() {
 	r.DELETE("/:course_id/classes/:class_id/attendances/:attendance_id", middleware.AuthMiddleware, attendanceController.DeleteAttendanceByID) //admin
 
 	// enrollment
-	// r.POST("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.StudentAttendClass) //admin & student
-	// r.GET("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.GetEnrollments) //admin & student
-	// r.DELETE("/:course_id/enrollments/:enrollment_id", middleware.AuthMiddleware, attendanceController.StudentAttendClass) //admin
+	// r.POST("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.StudentEnroll) //student
+	// r.GET("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.AdminValidate) //admin
 
 	// activity
 	// percentage student attendance based on number of class
