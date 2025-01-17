@@ -1,10 +1,18 @@
 package controller
 
 import (
+	"fmt"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/nadyafa/go-learn/entity"
+	"github.com/nadyafa/go-learn/middleware"
+	"github.com/nadyafa/go-learn/model"
 	"gorm.io/gorm"
 )
 
 type EnrollController interface {
+	StudentEnroll(ctx *gin.Context)
 }
 
 type EnrollControllerImpl struct {
@@ -18,98 +26,86 @@ func NewEnrollController(db *gorm.DB) EnrollController {
 }
 
 // create class (admin & mentor)
-// func (c *EnrollControllerImpl) StudentEnroll(ctx *gin.Context) {
-// 	// check if the currentUser is admin
-// 	claims, _ := ctx.Get("currentUser")
-// 	userClaims, ok := claims.(*middleware.UserClaims)
-// 	if !ok || userClaims.Role == entity.Student {
-// 		ctx.JSON(http.StatusForbidden, gin.H{
-// 			"error": "Access Restricted",
-// 			"code":  http.StatusForbidden,
-// 		})
-// 		return
-// 	}
+func (c *EnrollControllerImpl) StudentEnroll(ctx *gin.Context) {
+	// check if the currentUser is admin
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+	if !ok || userClaims.Role == entity.Mentor {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": "Access Restricted",
+			"code":  http.StatusForbidden,
+		})
+		return
+	}
 
-// 	// make sure courseID exist
-// 	courseID := ctx.Param("course_id")
-// 	var course entity.Course
-// 	if err := c.db.First(&course, courseID).Error; err != nil {
-// 		ctx.JSON(http.StatusNotFound, gin.H{
-// 			"message": fmt.Sprintf("CourseID %s not found", courseID),
-// 			"code":    http.StatusNotFound,
-// 		})
-// 		return
-// 	}
+	// make sure courseID exist
+	courseID := ctx.Param("course_id")
+	var course entity.Course
+	if err := c.db.First(&course, courseID).Error; err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"message": fmt.Sprintf("CourseID %s not found", courseID),
+			"code":    http.StatusNotFound,
+		})
+		return
+	}
 
-// 	// bind json body with model
-// 	var classReq model.CreateClass
+	// bind json body with model
+	var enrollReq model.CreateEnrollment
 
-// 	if err := ctx.ShouldBindJSON(&classReq); err != nil {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{
-// 			"error": err.Error(),
-// 			"code":  http.StatusBadRequest,
-// 		})
-// 		return
-// 	}
+	// validate UserID
+	if enrollReq.UserID == 0 {
+		if userClaims.Role != entity.Admin {
+			enrollReq.UserID = userClaims.UserID
+			enrollReq.UserRole = userClaims.Role
+		} else {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "UserID and UserRole cannot be empty",
+				"code":  http.StatusBadRequest,
+			})
+			return
+		}
+	}
 
-// 	// validate input className, startDate, endDate
-// 	isValid, _ := middleware.ValidateCourseName(classReq.ClassName)
-// 	if !isValid {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{
-// 			"error": "Class name cannot be empty",
-// 			"code":  http.StatusBadRequest,
-// 		})
-// 		return
-// 	}
+	// validate with model req
+	if err := ctx.ShouldBindJSON(&enrollReq); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
+			"msg":   "bad request",
+		})
+		return
+	}
 
-// 	isValid, validationMsg := middleware.ValidateCourseDate(classReq.StartDate.Format("02-01-2006 15:04"), classReq.EndDate.Format("02-01-2006 15:04"))
-// 	if !isValid {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{
-// 			"error": validationMsg,
-// 			"code":  http.StatusBadRequest,
-// 		})
-// 		return
-// 	}
+	// add new user enroll to db
+	enroll := entity.Enrollment{
+		UserID:   enrollReq.UserID,
+		UserRole: enrollReq.UserRole,
+		CourseID: course.CourseID,
+	}
 
-// 	// a mentor only able to create class for themselves
-// 	if userClaims.Role == entity.Mentor {
-// 		classReq.MentorID = userClaims.UserID
-// 	}
+	if err := c.db.Create(&enroll).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusInternalServerError,
+			"msg":   course.CourseID,
+		})
+		return
+	}
 
-// 	// add new course to db
-// 	class := entity.Class{
-// 		ClassName:   classReq.ClassName,
-// 		Description: classReq.Description,
-// 		MentorID:    classReq.MentorID,
-// 		StartDate:   classReq.StartDate.Time,
-// 		EndDate:     classReq.EndDate.Time,
-// 		CourseID:    course.CourseID,
-// 	}
+	// success response
+	enrollResp := model.EnrollResp{
+		EnrollmentID:   enroll.EnrollmentID,
+		UserID:         enroll.UserID,
+		UserRole:       enroll.UserRole,
+		CourseID:       enroll.CourseID,
+		EnrollmentDate: nil,
+		EnrollStatus:   entity.Pending,
+		CreatedAt:      enroll.CreatedAt,
+		UpdatedAt:      enroll.UpdatedAt,
+	}
 
-// 	if err := c.db.Create(&class).Error; err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{
-// 			"error": err,
-// 			"code":  http.StatusInternalServerError,
-// 			"msg":   course.CourseID,
-// 		})
-// 		return
-// 	}
-
-// 	// success response
-// 	classResp := model.ClassResp{
-// 		ClassID:     class.ClassID,
-// 		CourseID:    class.CourseID,
-// 		ClassName:   class.ClassName,
-// 		Description: class.Description,
-// 		MentorID:    class.MentorID,
-// 		StartDate:   class.StartDate,
-// 		EndDate:     class.EndDate,
-// 		CreatedAt:   class.CreatedAt,
-// 		UpdatedAt:   class.UpdatedAt,
-// 	}
-
-// 	ctx.JSON(http.StatusCreated, gin.H{
-// 		"message": fmt.Sprintf("Class %s created successfully", class.ClassName),
-// 		"data":    classResp,
-// 	})
-// }
+	ctx.JSON(http.StatusCreated, gin.H{
+		"message": fmt.Sprintf("UserID %d enrollment request has been sent", enroll.UserID),
+		"data":    enrollResp,
+	})
+}

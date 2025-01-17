@@ -13,7 +13,7 @@ type Course struct {
 
 	Classes []Class `gorm:"foreignKey:CourseID"` //ori one2many
 	// Class Class `gorm:"foreignKey:CourseID"`
-	// Enrollments []Enrollment `gorm:"foreignKey:CourseID"`
-	Projects []Project `gorm:"foreignKey:CourseID"`
+	Enrollments []Enrollment `gorm:"foreignKey:CourseID"`
+	Projects    []Project    `gorm:"foreignKey:CourseID"`
 	// Tests       []Test       `gorm:"foreignKey:CourseID"`
 }

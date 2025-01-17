@@ -55,6 +55,7 @@ func main() {
 	attendanceController := controller.NewAttendController(dbInit)
 	projectController := controller.NewProjectController(dbInit)
 	projectSubController := controller.NewProjectSubController(dbInit)
+	enrollController := controller.NewEnrollController(dbInit)
 
 	// auth
 	r.POST("/signup", userController.UserSignup)
@@ -104,7 +105,7 @@ func main() {
 	r.DELETE("/:course_id/classes/:class_id/attendances/:attendance_id", middleware.AuthMiddleware, attendanceController.DeleteAttendanceByID) //admin
 
 	// enrollment
-	// r.POST("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.StudentEnroll) //student
+	r.POST("/:course_id/enrollments", middleware.AuthMiddleware, enrollController.StudentEnroll) //student & mentor
 	// r.GET("/:course_id/enrollments", middleware.AuthMiddleware, attendanceController.AdminValidate) //admin
 
 	// activity
