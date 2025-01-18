@@ -56,7 +56,10 @@ func main() {
 	authService := service.NewAuthService(authRepo)
 	authController := controller.NewAuthController(authService)
 
-	courseController := controller.NewCourseController(dbInit)
+	courseRepo := repository.NewCourseRepo(dbInit)
+	couserService := service.NewCourseService(courseRepo)
+	courseController := controller.NewCourseController(couserService)
+
 	classController := controller.NewClassController(dbInit)
 	attendanceController := controller.NewAttendController(dbInit)
 	projectController := controller.NewProjectController(dbInit)

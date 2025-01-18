@@ -25,7 +25,7 @@ type User struct {
 
 	Enrollments []Enrollment `gorm:"foreignKey:UserID;constrain:OnUpdate:CASCADE"`
 	// Classes     []Class      `gorm:"foreignKey:MentorID;constrain:OnUpdate:CASCADE"`
-	Courses     []Course     `gorm:"many2many:course_enrollments"`
-	Projects    []Project    `gorm:"foreignKey:CourseID;constrain:OnUpdate:CASCADE"`
-	Attendances []Attendance `gorm:"foreignKey:StudentID;constrain:OnUpdate:CASCADE"`
+	CourseEnrolls []Course     `gorm:"many2many:course_enrollments;constrain:OnUpdate:CASCADE"`
+	Projects      []Project    `gorm:"foreignKey:CourseID;constrain:OnUpdate:CASCADE"`
+	Attendances   []Attendance `gorm:"foreignKey:StudentID;constrain:OnUpdate:CASCADE"`
 }

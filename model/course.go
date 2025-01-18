@@ -12,12 +12,6 @@ type CourseReq struct {
 	StartDate   middleware.CustomTime `json:"start_date" validate:"required"`
 	EndDate     middleware.CustomTime `json:"end_date" validate:"required"`
 }
-type UpdateCourse struct {
-	CourseName  string                `json:"course_name" validate:"required"`
-	Description string                `json:"description"`
-	StartDate   middleware.CustomTime `json:"start_date" validate:"required"`
-	EndDate     middleware.CustomTime `json:"end_date" validate:"required"`
-}
 
 type CourseResp struct {
 	CourseID    uint      `json:"course_id"`
