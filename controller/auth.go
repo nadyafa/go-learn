@@ -1,39 +1,31 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
-	"github.com/nadyafa/go-learn/entity"
-	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
-	"gorm.io/gorm"
+	"github.com/nadyafa/go-learn/service"
 )
 
-type UserController interface {
+type AuthController interface {
 	UserSignup(ctx *gin.Context)
 	UserSignin(ctx *gin.Context)
 	UserSignout(ctx *gin.Context)
 }
 
-type UserControllerImpl struct {
-	db        *gorm.DB
-	validator *validator.Validate
+type AuthControllerImpl struct {
+	authService service.AuthService
 }
 
-func NewUserController(db *gorm.DB) UserController {
-	return &UserControllerImpl{
-		db:        db,
-		validator: validator.New(),
+func NewAuthController(authService service.AuthService) AuthController {
+	return &AuthControllerImpl{
+		authService: authService,
 	}
 }
 
-func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
+func (c *AuthControllerImpl) UserSignup(ctx *gin.Context) {
 	// binding input req
 	var userSignup model.UserSignup
 
@@ -44,126 +36,31 @@ func (c *UserControllerImpl) UserSignup(ctx *gin.Context) {
 		})
 	}
 
-	// use validator to validate input with model struct
-	errorMessage := middleware.ValidateUserInput(userSignup, true)
-	if len(errorMessage) > 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Validation failed",
-			"details": errorMessage,
-			"code":    http.StatusBadRequest,
-		})
-		return
-	}
-
-	// checking username if exist in db
-	var exitingUser entity.User
-
-	if err := c.db.Where("username = ?", userSignup.Username).First(&exitingUser).Error; err == nil {
-		ctx.JSON(http.StatusConflict, gin.H{
-			"error": "Username is already exist",
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	// checking email
-	if err := c.db.Where("email = ?", userSignup.Email).First(&exitingUser).Error; err == nil {
-		ctx.JSON(http.StatusConflict, gin.H{
-			"error": "Email is already exist",
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	// hashing password
-	hashedPassword, err := middleware.HashPassword(userSignup.Password)
+	// call userSignup service
+	user, err := c.authService.UserSignup(userSignup)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Unable to hash password",
-			"code":  http.StatusInternalServerError,
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	}
-
-	// create new user
-	userSignup.Password = hashedPassword
-
-	user := entity.User{
-		Username: userSignup.Username,
-		Email:    userSignup.Email,
-		Password: userSignup.Password,
-		Role:     entity.Student,
-	}
-
-	if err := c.db.Create(&user).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Unable to sign up",
-			"code":  http.StatusInternalServerError,
-		})
-		return
-	}
-
-	// send notification email
-	if userSignup.Role == string(entity.Mentor) {
-		// notify admin
-		err := middleware.SendMail(
-			os.Getenv("ADMIN_EMAIL"),
-			"New Mentor Sign Up Pending Validation",
-			fmt.Sprintf("A user has signup with the role of mentor. Please validate user with UserID %s and Username %s", strconv.FormatUint(uint64(user.UserID), 10), user.Username),
-		)
-
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "failed to send notification to user",
-				"message": err.Error(),
-			})
-			return
-		}
-
-		// notify mentor
-		err = middleware.SendMail(
-			userSignup.Email,
-			"Go-Learn: User Sign Up Succeed",
-			"Thank you for signing up as a mentor in our platform. We'll inform you as soon as possible once the data is validated. Through the validation process, you can still sign up and check on our courses and platform by sign in to your account. Good luck!",
-		)
-
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "failed to send notification to user",
-				"message": err.Error(),
-			})
-			return
-		}
-	}
-
-	if user.Role == entity.Student {
-		// notify mentor
-		err := middleware.SendMail(
-			userSignup.Email,
-			"Go-Learn: User Sign Up Succeed",
-			"Thank you for signing up as a student in our platform. Please validate your account by signing up to your account. Good luck!",
-		)
-
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "failed to send notification to user",
-				"message": err.Error(),
-			})
-			return
-		}
 	}
 
 	// response succeed
+	userResp := model.UserResponse{
+		UserID:    user.UserID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      string(user.Role),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
 	ctx.JSON(http.StatusCreated, gin.H{
-		"user_id":  user.UserID,
-		"username": userSignup.Username,
-		"email":    userSignup.Email,
-		"message":  "User successfully created",
+		"message": "User successfully created",
+		"user":    userResp,
 	})
 }
 
-func (c *UserControllerImpl) UserSignin(ctx *gin.Context) {
-	var userSignin entity.User
+func (c *AuthControllerImpl) UserSignin(ctx *gin.Context) {
+	var userSignin model.UserSignin
 
 	// binding incoming req
 	if err := ctx.ShouldBindJSON(&userSignin); err != nil {
@@ -174,43 +71,10 @@ func (c *UserControllerImpl) UserSignin(ctx *gin.Context) {
 		return
 	}
 
-	// validate user input
-	errorMessage := middleware.ValidateUserInput(userSignin, false)
-	if len(errorMessage) > 0 {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Validation failed",
-			"details": errorMessage,
-			"code":    http.StatusBadRequest,
-		})
-		return
-	}
-
-	// check if the user exist
-	var exitingUser entity.User
-	if err := c.db.Where("username = ? OR email = ?", userSignin.Username, userSignin.Email).First(&exitingUser).Error; err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid username or email",
-			"code":  http.StatusUnauthorized,
-		})
-		return
-	}
-
-	// verified input password with hashed password in db
-	if !middleware.CheckPasswordHash(userSignin.Password, exitingUser.Password) {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid password",
-			"code":  http.StatusUnauthorized,
-		})
-		return
-	}
-
-	// generate jwt token
-	token, err := middleware.GenerateJWT(exitingUser.Username, exitingUser.Role, exitingUser.UserID)
+	// call userSignin service
+	user, token, err := c.authService.UserSignin(userSignin)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Unable generate token",
-			"code":  http.StatusInternalServerError,
-		})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -226,15 +90,23 @@ func (c *UserControllerImpl) UserSignin(ctx *gin.Context) {
 	}
 	http.SetCookie(ctx.Writer, httpCookie)
 
+	// send succeed response
+	userResp := model.UserResponse{
+		UserID:    user.UserID,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      string(user.Role),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"user_id":  exitingUser.UserID,
-		"username": exitingUser.Username,
-		"email":    exitingUser.Email,
-		"message":  "User signed in successfully",
+		"message": "User signed in successfully",
+		"user":    userResp,
 	})
 }
 
-func (c *UserControllerImpl) UserSignout(ctx *gin.Context) {
+func (c *AuthControllerImpl) UserSignout(ctx *gin.Context) {
 	// clear jwt token
 	http.SetCookie(ctx.Writer, &http.Cookie{
 		Name:     "auth_token",
@@ -249,6 +121,5 @@ func (c *UserControllerImpl) UserSignout(ctx *gin.Context) {
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "User sign out successfully",
-		"code":    http.StatusOK,
 	})
 }

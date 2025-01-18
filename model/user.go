@@ -17,21 +17,11 @@ type UserSignin struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type UserReqUpdate struct {
-	FirstName string `json:"first_name" gorm:"size:50;notNull"`
-	LastName  string `json:"last_name" gorm:"size:50;notNull"`
-	Password  string `json:"password" gorm:"notNull"`
-	// Description string `json:"description" gorm:"omitempty"`
-	// Image_path  string `json:"image_path" gorm:"omitempty"`
-}
-
 type UserResponse struct {
-	UserID   uint   `json:"user_id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-	// Description string    `json:"description"`
-	// Image_path  string    `json:"image_path"`
+	UserID    uint      `json:"user_id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

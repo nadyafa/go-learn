@@ -8,6 +8,8 @@ import (
 	"github.com/nadyafa/go-learn/config/db"
 	"github.com/nadyafa/go-learn/controller"
 	"github.com/nadyafa/go-learn/middleware"
+	"github.com/nadyafa/go-learn/repository"
+	"github.com/nadyafa/go-learn/service"
 )
 
 func main() {
@@ -46,10 +48,14 @@ func main() {
 	})
 
 	// setup dependencies injection
-	// userRepo := repository.NewUserRepo(dbInit)
-	// userService := service.NewUserService(userRepo)
-	userController := controller.NewUserController(dbInit)
-	adminController := controller.NewAdminController(dbInit)
+	userRepo := repository.NewUserRepo(dbInit)
+	userService := service.NewUserService(userRepo)
+	userController := controller.NewUserController(userService)
+
+	authRepo := repository.NewAuthRepo(dbInit)
+	authService := service.NewAuthService(authRepo)
+	authController := controller.NewAuthController(authService)
+
 	courseController := controller.NewCourseController(dbInit)
 	classController := controller.NewClassController(dbInit)
 	attendanceController := controller.NewAttendController(dbInit)
@@ -58,18 +64,18 @@ func main() {
 	enrollController := controller.NewEnrollController(dbInit)
 
 	// auth
-	r.POST("/signup", userController.UserSignup)
-	r.POST("/signin", userController.UserSignin)
-	r.POST("/signout", userController.UserSignout)
+	r.POST("/signup", authController.UserSignup)
+	r.POST("/signin", authController.UserSignin)
+	r.POST("/signout", authController.UserSignout)
 
 	// user
-	adminController.GenerateAdmin()
+	userController.GenerateAdmin()
 	// admin only
-	r.GET("/users", middleware.AuthMiddleware, adminController.GetUsers)
-	r.PUT("/users/:user_id", middleware.AuthMiddleware, adminController.UpdateUserRoleByID)
-	r.DELETE("/users/:user_id", middleware.AuthMiddleware, adminController.DeleteUserByID)
+	r.GET("/users", middleware.AuthMiddleware, userController.GetUsers)
+	r.PUT("/users/:user_id", middleware.AuthMiddleware, userController.UpdateUserRoleByID)
+	r.DELETE("/users/:user_id", middleware.AuthMiddleware, userController.DeleteUserByID)
 	// admin & mentor
-	r.GET("/users/:user_id", middleware.AuthMiddleware, adminController.GetUserByID)
+	r.GET("/users/:user_id", middleware.AuthMiddleware, userController.GetUserByID)
 
 	// course
 	r.POST("/courses", middleware.AuthMiddleware, courseController.CreateCourse)
