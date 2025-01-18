@@ -6,19 +6,9 @@ import (
 	"github.com/nadyafa/go-learn/entity"
 )
 
-type CreateEnrollment struct {
-	UserID   uint        `json:"user_id" validate:"required"`
-	UserRole entity.Role `json:"user_role" validate:"required"`
-}
-
-type UpdateEnrollment struct {
-	UserID uint `json:"user_id" validate:"required"`
-	// UserRole entity.Role `json:"user_role" validate:"required"`
-}
-
 type EnrollResp struct {
 	EnrollmentID uint `json:"enrollment_id" validate:"required"`
-	StudentID    uint `json:"user_id" validate:"required"`
+	StudentID    uint `json:"student_id" validate:"required"`
 	// UserRole       entity.Role   `json:"user_role" validate:"required"`
 	CourseID       uint          `json:"course_id" validate:"required"`
 	EnrollmentDate *time.Time    `json:"enrollment_date"`

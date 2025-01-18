@@ -13,6 +13,7 @@ import (
 
 type EnrollController interface {
 	StudentEnroll(ctx *gin.Context)
+	UpdateStudentEnroll(ctx *gin.Context)
 }
 
 type EnrollControllerImpl struct {
@@ -84,12 +85,57 @@ func (c *EnrollControllerImpl) StudentEnroll(ctx *gin.Context) {
 
 // admin only
 func (c *EnrollControllerImpl) UpdateStudentEnroll(ctx *gin.Context) {
+	// check if the user is signed in
+	claims, _ := ctx.Get("currentUser")
+	userClaims, ok := claims.(*middleware.UserClaims)
+	if !ok {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"message": "User must sign in to get user details",
+			"code":    http.StatusForbidden,
+		})
+		return
+	}
 
+	// get courseID
+	courseID := ctx.Param("course_id")
+
+	// validate role input
+	var enrollReq struct {
+		StudentID    uint   `json:"student_id" validate:"required"`
+		EnrollStatus string `json:"enroll_status" validate:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&enrollReq); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// update enrollment
+	enroll, err := c.enrollService.UpdateStudentEnroll(userClaims, courseID, fmt.Sprint(enrollReq.StudentID), entity.Status(enrollReq.EnrollStatus))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
+		})
+		return
+	}
+
+	// success response
+	enrollResp := model.EnrollResp{
+		EnrollmentID:   enroll.EnrollmentID,
+		StudentID:      enroll.StudentID,
+		CourseID:       enroll.CourseID,
+		EnrollmentDate: &enroll.EnrollmentDate,
+		EnrollStatus:   enroll.EnrollStatus,
+		CreatedAt:      enroll.CreatedAt,
+		UpdatedAt:      enroll.UpdatedAt,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("UserID %d enrollment request has been sent", enroll.StudentID),
+		"data":    enrollResp,
+	})
 }
-
-// mentor & admin || get a student by studentID & couseID
-func (c *EnrollControllerImpl) StudentCourseEnroll(ctx *gin.Context) {
-
-}
-
-// mentor & admin || get students enroll to a course by courseID

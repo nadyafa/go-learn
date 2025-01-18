@@ -8,6 +8,7 @@ import (
 type EnrollRepo interface {
 	StudentEnroll(enroll entity.Enrollment) (*entity.Enrollment, error)
 	StudentCourseEnroll(courseID, userID string) (*entity.Enrollment, error)
+	UpdateStudentEnroll(courseID, userID string, updateEnroll entity.Enrollment) (*entity.Enrollment, error)
 }
 
 type EnrollRepoImpl struct {
@@ -28,12 +29,20 @@ func (r *EnrollRepoImpl) StudentEnroll(enroll entity.Enrollment) (*entity.Enroll
 	return &enroll, nil
 }
 
-func (r *EnrollRepoImpl) StudentCourseEnroll(courseID, userID string) (*entity.Enrollment, error) {
+func (r *EnrollRepoImpl) StudentCourseEnroll(courseID, studentID string) (*entity.Enrollment, error) {
 	var studentEnroll entity.Enrollment
 
-	if err := r.db.Where("user_id = ? AND course_id = ?", userID, courseID).First(&studentEnroll).Error; err != nil {
+	if err := r.db.First(&studentEnroll, studentID, courseID).Error; err != nil {
 		return nil, err
 	}
 
 	return &studentEnroll, nil
+}
+
+func (r *EnrollRepoImpl) UpdateStudentEnroll(courseID, studentID string, updateEnroll entity.Enrollment) (*entity.Enrollment, error) {
+	if err := r.db.Where("student_id = ? AND course_id = ?", studentID, courseID).Updates(updateEnroll).Error; err != nil {
+		return nil, err
+	}
+
+	return &updateEnroll, nil
 }

@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"os"
+	"time"
 
 	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
@@ -11,6 +11,7 @@ import (
 
 type EnrollService interface {
 	StudentEnroll(userClaims *middleware.UserClaims, courseID, studentID string) (*entity.Enrollment, error)
+	UpdateStudentEnroll(userClaims *middleware.UserClaims, courseID, studentID string, enrollStatus entity.Status) (*entity.Enrollment, error)
 }
 
 type EnrollServiceImpl struct {
@@ -73,26 +74,68 @@ func (s *EnrollServiceImpl) StudentEnroll(userClaims *middleware.UserClaims, cou
 	}
 
 	// notify student
-	if userClaims.Role == entity.Student {
-		if err := middleware.SendMail(
-			userExist.Email,
-			"Go-Learn: Course Enrollment",
-			fmt.Sprintf("You have successfully signed to a courseID %s. You enrollment status currently on pending. We will soon notified you once it verified. Good luck!", courseID),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to student: %v", err)
-		}
-	}
+	// if userClaims.Role == entity.Student {
+	// 	if err := middleware.SendMail(
+	// 		userExist.Email,
+	// 		"Go-Learn: Course Enrollment",
+	// 		fmt.Sprintf("You have successfully signed to a courseID %s. You enrollment status currently on pending. We will soon notified you once it verified. Good luck!", courseID),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to student: %v", err)
+	// 	}
+	// }
 
-	// notify admin
-	if userClaims.Role == entity.Admin {
-		if err := middleware.SendMail(
-			os.Getenv("ADMIN_EMAIL"),
-			"A New User Course Enrollment",
-			fmt.Sprintf("UserID %d has signed to a courseID %s. Please validate their enrollment status.", userExist.UserID, courseID),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to admin: %v", err)
-		}
-	}
+	// // notify admin
+	// if userClaims.Role == entity.Admin {
+	// 	if err := middleware.SendMail(
+	// 		os.Getenv("ADMIN_EMAIL"),
+	// 		"A New User Course Enrollment",
+	// 		fmt.Sprintf("UserID %d has signed to a courseID %s. Please validate their enrollment status.", userExist.UserID, courseID),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to admin: %v", err)
+	// 	}
+	// }
 
 	return newEnroll, nil
+}
+
+func (s *EnrollServiceImpl) UpdateStudentEnroll(userClaims *middleware.UserClaims, courseID, studentID string, enrollStatus entity.Status) (*entity.Enrollment, error) {
+	// admin only
+	if userClaims.Role != entity.Admin {
+		return nil, fmt.Errorf("only admin can update enrollment data")
+	}
+
+	// check if courseID exist
+	if _, err := s.courseRepo.GetCourseByID(courseID); err != nil {
+		return nil, fmt.Errorf("course not found")
+	}
+
+	// check if user exist
+	if _, err := s.userRepo.GetUserByID(studentID); err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// check if student already enroll to a course
+	existingEnroll, err := s.enrollRepo.StudentCourseEnroll(studentID, courseID)
+	if err != nil {
+		return nil, fmt.Errorf("student hasn't enroll to a course. courseid: %s, studentid: %s. err: %v", courseID, studentID, err.Error())
+	}
+
+	// create student enrollment entity
+	updateEnroll := entity.Enrollment{
+		EnrollmentID:   existingEnroll.EnrollmentID,
+		StudentID:      existingEnroll.StudentID,
+		CourseID:       existingEnroll.CourseID,
+		EnrollmentDate: time.Now(),
+		EnrollStatus:   enrollStatus,
+		CreatedAt:      existingEnroll.CreatedAt,
+		UpdatedAt:      time.Now(),
+	}
+
+	// update enrollmentStatus
+	enroll, err := s.enrollRepo.UpdateStudentEnroll(courseID, studentID, updateEnroll)
+	if err != nil {
+		return nil, fmt.Errorf("unable to update student status enrollment")
+	}
+
+	return enroll, nil
 }

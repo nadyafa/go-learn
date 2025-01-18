@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/nadyafa/go-learn/entity"
@@ -67,36 +66,36 @@ func (s *AuthServiceImpl) UserSignup(userSignup model.UserSignup) (*entity.User,
 	}
 
 	// notify user
-	if userSignup.Role == string(entity.Mentor) {
-		// notify admin
-		if err := middleware.SendMail(
-			os.Getenv("ADMIN_EMAIL"),
-			"New Mentor Sign Up Pending Validation",
-			fmt.Sprintf("A user has signed up with the role of mentor. Please validate user with UserID %s and Username %s", fmt.Sprint(user.UserID), user.Username),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to admin: %v", err)
-		}
+	// if userSignup.Role == string(entity.Mentor) {
+	// 	// notify admin
+	// 	if err := middleware.SendMail(
+	// 		os.Getenv("ADMIN_EMAIL"),
+	// 		"New Mentor Sign Up Pending Validation",
+	// 		fmt.Sprintf("A user has signed up with the role of mentor. Please validate user with UserID %s and Username %s", fmt.Sprint(user.UserID), user.Username),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to admin: %v", err)
+	// 	}
 
-		// notify mentor
-		if err := middleware.SendMail(
-			userSignup.Email,
-			"Go-Learn Sign Up",
-			fmt.Sprintf("You have successfully sign up with UserID %s and Username %s. We will notify you as soon as your role as a mentor is being verified, but you still can sign in to account. Good luck!", fmt.Sprint(user.UserID), user.Username),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to mentor: %v", err)
-		}
-	}
+	// 	// notify mentor
+	// 	if err := middleware.SendMail(
+	// 		userSignup.Email,
+	// 		"Go-Learn Sign Up",
+	// 		fmt.Sprintf("You have successfully sign up with UserID %s and Username %s. We will notify you as soon as your role as a mentor is being verified, but you still can sign in to account. Good luck!", fmt.Sprint(user.UserID), user.Username),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to mentor: %v", err)
+	// 	}
+	// }
 
-	if userSignup.Role == string(entity.Student) || userSignup.Role == "" {
-		// notify mentor
-		if err := middleware.SendMail(
-			userSignup.Email,
-			"Go-Learn Sign Up",
-			fmt.Sprintf("You have successfully sign up with UserID %s and Username %s. Please sign in to verify your login. Good luck!", fmt.Sprint(user.UserID), user.Username),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to student: %v", err)
-		}
-	}
+	// if userSignup.Role == string(entity.Student) || userSignup.Role == "" {
+	// 	// notify mentor
+	// 	if err := middleware.SendMail(
+	// 		userSignup.Email,
+	// 		"Go-Learn Sign Up",
+	// 		fmt.Sprintf("You have successfully sign up with UserID %s and Username %s. Please sign in to verify your login. Good luck!", fmt.Sprint(user.UserID), user.Username),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to student: %v", err)
+	// 	}
+	// }
 
 	return user, nil
 }
