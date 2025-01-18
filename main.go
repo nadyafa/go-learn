@@ -60,11 +60,14 @@ func main() {
 	couserService := service.NewCourseService(courseRepo)
 	courseController := controller.NewCourseController(couserService)
 
+	enrollRepo := repository.NewEnrollRepo(dbInit)
+	enrollService := service.NewEnrollService(courseRepo, enrollRepo, userRepo)
+	enrollController := controller.NewEnrollController(enrollService)
+
 	classController := controller.NewClassController(dbInit)
 	attendanceController := controller.NewAttendController(dbInit)
 	projectController := controller.NewProjectController(dbInit)
 	projectSubController := controller.NewProjectSubController(dbInit)
-	enrollController := controller.NewEnrollController(dbInit)
 
 	// auth
 	r.POST("/signup", authController.UserSignup)

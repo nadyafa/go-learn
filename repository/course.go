@@ -44,7 +44,7 @@ func (r *CourseRepoImpl) GetCourses() ([]entity.Course, error) {
 func (r *CourseRepoImpl) GetCourseByID(courseID string) (*entity.Course, error) {
 	var course entity.Course
 
-	if err := r.db.Find(&course, courseID).Error; err != nil {
+	if err := r.db.First(&course, courseID).Error; err != nil {
 		return nil, err
 	}
 

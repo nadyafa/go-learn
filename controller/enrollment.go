@@ -8,7 +8,7 @@ import (
 	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
-	"gorm.io/gorm"
+	"github.com/nadyafa/go-learn/service"
 )
 
 type EnrollController interface {
@@ -16,12 +16,12 @@ type EnrollController interface {
 }
 
 type EnrollControllerImpl struct {
-	db *gorm.DB
+	enrollService service.EnrollService
 }
 
-func NewEnrollController(db *gorm.DB) EnrollController {
+func NewEnrollController(enrollService service.EnrollService) EnrollController {
 	return &EnrollControllerImpl{
-		db: db,
+		enrollService: enrollService,
 	}
 }
 
@@ -30,64 +30,37 @@ func (c *EnrollControllerImpl) StudentEnroll(ctx *gin.Context) {
 	// check if the currentUser is admin
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role == entity.Mentor {
+	if !ok {
 		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Access Restricted",
+			"error": "User must sign in to enroll to a course",
 			"code":  http.StatusForbidden,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
 	// bind json body with model
-	var enrollReq model.CreateEnrollment
-
-	// validate UserID
-	if enrollReq.UserID == 0 {
-		if userClaims.Role != entity.Admin {
-			enrollReq.UserID = userClaims.UserID
-			enrollReq.UserRole = userClaims.Role
-		} else {
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"error": "UserID and UserRole cannot be empty",
-				"code":  http.StatusBadRequest,
-			})
-			return
-		}
+	var studentID struct {
+		StudentID uint `json:"student_id"`
 	}
 
 	// validate with model req
-	if err := ctx.ShouldBindJSON(&enrollReq); err != nil {
+	if err := ctx.ShouldBindJSON(&studentID); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 			"code":  http.StatusBadRequest,
-			"msg":   "bad request",
 		})
 		return
 	}
 
-	// add new user enroll to db
-	enroll := entity.Enrollment{
-		UserID:   enrollReq.UserID,
-		UserRole: enrollReq.UserRole,
-		CourseID: course.CourseID,
-	}
-
-	if err := c.db.Create(&enroll).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
+	// enroll to a course
+	enroll, err := c.enrollService.StudentEnroll(userClaims, courseID, fmt.Sprint(studentID.StudentID))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
-			"code":  http.StatusInternalServerError,
-			"msg":   course.CourseID,
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -95,8 +68,7 @@ func (c *EnrollControllerImpl) StudentEnroll(ctx *gin.Context) {
 	// success response
 	enrollResp := model.EnrollResp{
 		EnrollmentID:   enroll.EnrollmentID,
-		UserID:         enroll.UserID,
-		UserRole:       enroll.UserRole,
+		StudentID:      enroll.StudentID,
 		CourseID:       enroll.CourseID,
 		EnrollmentDate: nil,
 		EnrollStatus:   entity.Pending,
@@ -105,7 +77,19 @@ func (c *EnrollControllerImpl) StudentEnroll(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": fmt.Sprintf("UserID %d enrollment request has been sent", enroll.UserID),
+		"message": fmt.Sprintf("UserID %d enrollment request has been sent", enroll.StudentID),
 		"data":    enrollResp,
 	})
 }
+
+// admin only
+func (c *EnrollControllerImpl) UpdateStudentEnroll(ctx *gin.Context) {
+
+}
+
+// mentor & admin || get a student by studentID & couseID
+func (c *EnrollControllerImpl) StudentCourseEnroll(ctx *gin.Context) {
+
+}
+
+// mentor & admin || get students enroll to a course by courseID

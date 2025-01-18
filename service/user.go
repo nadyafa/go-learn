@@ -90,7 +90,7 @@ func (s *UserServiceImpl) GetUserByID(userID string, userClaims *middleware.User
 	return user, nil
 }
 
-func (s *UserServiceImpl) UpdateUserRoleByID(userClaims *middleware.UserClaims, userID string, role string) (*entity.User, error) {
+func (s *UserServiceImpl) UpdateUserRoleByID(userClaims *middleware.UserClaims, userID, role string) (*entity.User, error) {
 	if userClaims.Role != entity.Admin {
 		return nil, fmt.Errorf("only admin can update user data")
 	}
@@ -101,7 +101,7 @@ func (s *UserServiceImpl) UpdateUserRoleByID(userClaims *middleware.UserClaims, 
 	}
 
 	// check if userID exist
-	user, err := s.userRepo.GetUserByID(userID)
+	_, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
 	}
@@ -110,6 +110,12 @@ func (s *UserServiceImpl) UpdateUserRoleByID(userClaims *middleware.UserClaims, 
 	_, err = s.userRepo.UpdateUserRoleByID(userID, role)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update user role")
+	}
+
+	// return user value
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
 	}
 
 	return user, nil

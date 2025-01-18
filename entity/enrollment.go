@@ -17,9 +17,9 @@ const (
 type Enrollment struct {
 	EnrollmentID uint `json:"enrollment_id" gorm:"primaryKey;autoIncrement"`
 
-	UserID uint `json:"user_id" gorm:"notNull"`
-	// User     User `gorm:"foreignKey:UserID"`
-	UserRole Role `json:"user_role"`
+	StudentID uint `json:"student_id" gorm:"notNull"`
+	// User      User `gorm:"foreignKey:StudentID"`
+	// UserRole Role `json:"user_role"`
 
 	CourseID       uint      `json:"course_id" gorm:"index;notNull"`
 	EnrollmentDate time.Time `json:"enrollment_date"`
