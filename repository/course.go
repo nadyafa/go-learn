@@ -52,7 +52,7 @@ func (r *CourseRepoImpl) GetCourseByID(courseID string) (*entity.Course, error) 
 }
 
 func (r *CourseRepoImpl) UpdateCourseByID(courseID string, course *entity.Course) error {
-	if err := r.db.Where("course_id = ?", courseID).Save(&course).Error; err != nil {
+	if err := r.db.Where("course_id = ?", courseID).Updates(&course).Error; err != nil {
 		return err
 	}
 

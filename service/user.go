@@ -118,6 +118,15 @@ func (s *UserServiceImpl) UpdateUserRoleByID(userClaims *middleware.UserClaims, 
 		return nil, fmt.Errorf("user not found")
 	}
 
+	// notify mentor
+	if err := middleware.SendMail(
+		user.Email,
+		"Go-Learn: Mentor Role Verified",
+		"You sign up request as a mentor has been verified. Congratulation and goodluck!",
+	); err != nil {
+		return nil, fmt.Errorf("failed to send notification to mentor: %v", err)
+	}
+
 	return user, nil
 }
 

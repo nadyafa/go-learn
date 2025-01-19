@@ -9,6 +9,7 @@ import (
 	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
+	"github.com/nadyafa/go-learn/repository"
 	"gorm.io/gorm"
 )
 
@@ -21,12 +22,14 @@ type ClassController interface {
 }
 
 type ClassControllerImpl struct {
-	db *gorm.DB
+	db         *gorm.DB
+	courseRepo repository.CourseRepo
 }
 
-func NewClassController(db *gorm.DB) ClassController {
+func NewClassController(db *gorm.DB, courseRepo repository.CourseRepo) ClassController {
 	return &ClassControllerImpl{
-		db: db,
+		db:         db,
+		courseRepo: courseRepo,
 	}
 }
 
@@ -84,16 +87,35 @@ func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
 		return
 	}
 
-	// a mentor only able to create class for themselves
+	// // a mentor only able to create class for themselves
+	// if userClaims.Role == entity.Mentor {
+	// 	classReq.MentorID = userClaims.UserID
+	// }
+
+	// verify if the mentor own the course
+	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("CourseID %s not found", courseID),
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
 	if userClaims.Role == entity.Mentor {
-		classReq.MentorID = userClaims.UserID
+		if existingCourse.MentorID != userClaims.UserID {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "you have no access to create new class to this course",
+				"code":  http.StatusBadRequest,
+			})
+			return
+		}
 	}
 
 	// add new course to db
 	class := entity.Class{
 		ClassName:   classReq.ClassName,
 		Description: classReq.Description,
-		MentorID:    classReq.MentorID,
 		StartDate:   classReq.StartDate.Time,
 		EndDate:     classReq.EndDate.Time,
 		CourseID:    course.CourseID,
@@ -114,7 +136,6 @@ func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
 		CourseID:    class.CourseID,
 		ClassName:   class.ClassName,
 		Description: class.Description,
-		MentorID:    class.MentorID,
 		StartDate:   class.StartDate,
 		EndDate:     class.EndDate,
 		CreatedAt:   class.CreatedAt,
@@ -162,11 +183,29 @@ func (c *ClassControllerImpl) GetClasses(ctx *gin.Context) {
 		return
 	}
 
+	// create response
+	var classResponses []model.ClassResp
+
+	for _, class := range classes {
+		classResp := model.ClassResp{
+			ClassID:     class.ClassID,
+			CourseID:    class.CourseID,
+			ClassName:   class.ClassName,
+			Description: class.Description,
+			StartDate:   class.StartDate,
+			EndDate:     class.EndDate,
+			CreatedAt:   class.CreatedAt,
+			UpdatedAt:   class.UpdatedAt,
+		}
+
+		classResponses = append(classResponses, classResp)
+	}
+
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Classes fetch successfully",
 		"code":    http.StatusOK,
-		"data":    classes,
+		"data":    classResponses,
 	})
 }
 
@@ -211,7 +250,6 @@ func (c *ClassControllerImpl) GetClassByID(ctx *gin.Context) {
 		CourseID:    class.CourseID,
 		ClassName:   class.ClassName,
 		Description: class.Description,
-		MentorID:    class.MentorID,
 		StartDate:   class.StartDate,
 		EndDate:     class.EndDate,
 		CreatedAt:   class.CreatedAt,
@@ -303,10 +341,23 @@ func (c *ClassControllerImpl) UpdateClassByID(ctx *gin.Context) {
 	existingClass.UpdatedAt = time.Now()
 
 	// a mentor only able to create class for themselves
+	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("CourseID %s not found", courseID),
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
 	if userClaims.Role == entity.Mentor {
-		existingClass.MentorID = userClaims.UserID
-	} else {
-		existingClass.MentorID = classReq.MentorID
+		if existingCourse.MentorID != userClaims.UserID {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "you have no access to create new class to this course",
+				"code":  http.StatusBadRequest,
+			})
+			return
+		}
 	}
 
 	// update class to db
@@ -324,7 +375,6 @@ func (c *ClassControllerImpl) UpdateClassByID(ctx *gin.Context) {
 		CourseID:    existingClass.CourseID,
 		ClassName:   existingClass.ClassName,
 		Description: existingClass.Description,
-		MentorID:    existingClass.MentorID,
 		StartDate:   existingClass.StartDate,
 		EndDate:     existingClass.EndDate,
 		CreatedAt:   existingClass.CreatedAt,

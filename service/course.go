@@ -29,7 +29,7 @@ func NewCourseService(courseRepo repository.CourseRepo) CourseService {
 }
 
 func (s *CourseServiceImpl) CreateCourse(userClaims *middleware.UserClaims, courseReq model.CourseReq) (*entity.Course, error) {
-	// userClaim role must be admin
+	// userClaim role must be admin & mentor
 	if userClaims.Role == entity.Student {
 		return nil, fmt.Errorf("only admin & mentor can create a new course")
 	}
@@ -45,10 +45,19 @@ func (s *CourseServiceImpl) CreateCourse(userClaims *middleware.UserClaims, cour
 		return nil, errMsg
 	}
 
+	if courseReq.MentorID == 0 {
+		if userClaims.Role == entity.Mentor {
+			courseReq.MentorID = userClaims.UserID
+		} else {
+			return nil, fmt.Errorf("mentor_id is required")
+		}
+	}
+
 	// create course entity to repo layer
 	course := entity.Course{
 		CourseName:  courseReq.CourseName,
 		Description: courseReq.Description,
+		MentorID:    courseReq.MentorID,
 		StartDate:   courseReq.StartDate.Time,
 		EndDate:     courseReq.EndDate.Time,
 	}
@@ -103,6 +112,10 @@ func (s *CourseServiceImpl) UpdateCourseByID(userClaims *middleware.UserClaims, 
 
 	if courseReq.Description != "" {
 		existingCourse.Description = courseReq.Description
+	}
+
+	if courseReq.MentorID != 0 {
+		existingCourse.MentorID = courseReq.MentorID
 	}
 
 	if !courseReq.StartDate.IsZero() {

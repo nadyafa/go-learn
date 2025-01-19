@@ -64,9 +64,9 @@ func main() {
 	enrollService := service.NewEnrollService(courseRepo, enrollRepo, userRepo)
 	enrollController := controller.NewEnrollController(enrollService)
 
-	classController := controller.NewClassController(dbInit)
-	attendanceController := controller.NewAttendController(dbInit)
-	projectController := controller.NewProjectController(dbInit)
+	classController := controller.NewClassController(dbInit, courseRepo)
+	attendanceController := controller.NewAttendController(dbInit, courseRepo)
+	projectController := controller.NewProjectController(dbInit, courseRepo)
 	projectSubController := controller.NewProjectSubController(dbInit)
 
 	// auth

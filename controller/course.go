@@ -67,6 +67,7 @@ func (c *CourseControllerImpl) CreateCourse(ctx *gin.Context) {
 		CourseID:    course.CourseID,
 		CourseName:  course.CourseName,
 		Description: course.Description,
+		MentorID:    course.MentorID,
 		StartDate:   course.StartDate,
 		EndDate:     course.EndDate,
 		CreatedAt:   course.CreatedAt,
@@ -102,10 +103,28 @@ func (c *CourseControllerImpl) GetCourses(ctx *gin.Context) {
 		return
 	}
 
+	// create response
+	var courseResponses []model.CourseResp
+
+	for _, course := range courses {
+		courseResp := model.CourseResp{
+			CourseID:    course.CourseID,
+			CourseName:  course.CourseName,
+			Description: course.Description,
+			MentorID:    course.MentorID,
+			StartDate:   course.StartDate,
+			EndDate:     course.EndDate,
+			CreatedAt:   course.CreatedAt,
+			UpdatedAt:   course.UpdatedAt,
+		}
+
+		courseResponses = append(courseResponses, courseResp)
+	}
+
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Courses fetch successfully",
-		"data":    courses,
+		"data":    courseResponses,
 	})
 }
 
@@ -136,9 +155,20 @@ func (c *CourseControllerImpl) GetCourseByID(ctx *gin.Context) {
 	}
 
 	// succeed response
+	courseResp := model.CourseResp{
+		CourseID:    course.CourseID,
+		CourseName:  course.CourseName,
+		Description: course.Description,
+		MentorID:    course.MentorID,
+		StartDate:   course.StartDate,
+		EndDate:     course.EndDate,
+		CreatedAt:   course.CreatedAt,
+		UpdatedAt:   course.UpdatedAt,
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Course fetch successfully",
-		"data":    course,
+		"data":    courseResp,
 	})
 }
 
@@ -183,6 +213,7 @@ func (c *CourseControllerImpl) UpdateCourseByID(ctx *gin.Context) {
 		CourseID:    course.CourseID,
 		CourseName:  course.CourseName,
 		Description: course.Description,
+		MentorID:    course.MentorID,
 		StartDate:   course.StartDate,
 		EndDate:     course.EndDate,
 		CreatedAt:   course.CreatedAt,

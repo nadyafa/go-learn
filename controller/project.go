@@ -8,6 +8,7 @@ import (
 	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
+	"github.com/nadyafa/go-learn/repository"
 	"gorm.io/gorm"
 )
 
@@ -20,12 +21,14 @@ type ProjectController interface {
 }
 
 type ProjectControllerImpl struct {
-	db *gorm.DB
+	db         *gorm.DB
+	courseRepo repository.CourseRepo
 }
 
-func NewProjectController(db *gorm.DB) ProjectController {
+func NewProjectController(db *gorm.DB, courseRepo repository.CourseRepo) ProjectController {
 	return &ProjectControllerImpl{
-		db: db,
+		db:         db,
+		courseRepo: courseRepo,
 	}
 }
 
@@ -68,7 +71,7 @@ func (c *ProjectControllerImpl) CreateProject(ctx *gin.Context) {
 	isValid, validationMsg := middleware.ValidateCourseName(projectReq.ProjectName)
 	if !isValid {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": validationMsg,
+			"error": validationMsg.Error(),
 			"code":  http.StatusBadRequest,
 		})
 		return
@@ -78,10 +81,30 @@ func (c *ProjectControllerImpl) CreateProject(ctx *gin.Context) {
 	isValid, validationMsg = middleware.ValidateCourseDate(projectReq.Deadline.Format("02-01-2006 15:04"), course.EndDate.Format("02-01-2006 15:04"))
 	if !isValid {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": validationMsg,
+			"error": validationMsg.Error(),
 			"code":  http.StatusBadRequest,
 		})
 		return
+	}
+
+	// verify if the mentor own the course
+	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("CourseID %s not found", courseID),
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
+	if userClaims.Role == entity.Mentor {
+		if existingCourse.MentorID != userClaims.UserID {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "you have no access to create new class to this course",
+				"code":  http.StatusBadRequest,
+			})
+			return
+		}
 	}
 
 	// add new course to db
@@ -112,7 +135,7 @@ func (c *ProjectControllerImpl) CreateProject(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": fmt.Sprintf("Course %s created successfully", course.CourseName),
+		"message": fmt.Sprintf("Project on course %s created successfully", course.CourseName),
 		"user":    projectResp,
 	})
 }
@@ -152,11 +175,28 @@ func (c *ProjectControllerImpl) GetProjects(ctx *gin.Context) {
 		return
 	}
 
+	// create response
+	var projectResponses []model.ProjectResp
+
+	for _, project := range projects {
+		projectResp := model.ProjectResp{
+			ProjectID:   project.ProjectID,
+			CourseID:    project.CourseID,
+			ProjectName: project.ProjectName,
+			Description: project.Description,
+			Deadline:    project.Deadline,
+			CreatedAt:   project.CreatedAt,
+			UpdatedAt:   project.UpdatedAt,
+		}
+
+		projectResponses = append(projectResponses, projectResp)
+	}
+
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "Classes fetch successfully",
 		"code":    http.StatusOK,
-		"data":    projects,
+		"data":    projectResponses,
 	})
 }
 
@@ -284,6 +324,26 @@ func (c *ProjectControllerImpl) UpdateProject(ctx *gin.Context) {
 		existingProject.Deadline = projectReq.Deadline.Time
 	}
 
+	// verify if the mentor own the course
+	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("CourseID %s not found", courseID),
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
+	if userClaims.Role == entity.Mentor {
+		if existingCourse.MentorID != userClaims.UserID {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "you have no access to create new class to this course",
+				"code":  http.StatusBadRequest,
+			})
+			return
+		}
+	}
+
 	// add new course to db
 	project := entity.Project{
 		CourseID:    course.CourseID,
@@ -311,8 +371,8 @@ func (c *ProjectControllerImpl) UpdateProject(ctx *gin.Context) {
 		UpdatedAt:   project.UpdatedAt,
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"message": fmt.Sprintf("Course %s created successfully", course.CourseName),
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": fmt.Sprintf("Project %s created successfully", course.CourseName),
 		"user":    projectResp,
 	})
 }

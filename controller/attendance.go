@@ -10,6 +10,7 @@ import (
 	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
+	"github.com/nadyafa/go-learn/repository"
 	"gorm.io/gorm"
 )
 
@@ -20,12 +21,14 @@ type AttendController interface {
 }
 
 type AttendControllerImpl struct {
-	db *gorm.DB
+	db         *gorm.DB
+	courseRepo repository.CourseRepo
 }
 
-func NewAttendController(db *gorm.DB) AttendController {
+func NewAttendController(db *gorm.DB, courseRepo repository.CourseRepo) AttendController {
 	return &AttendControllerImpl{
-		db: db,
+		db:         db,
+		courseRepo: courseRepo,
 	}
 }
 
@@ -170,12 +173,21 @@ func (c *AttendControllerImpl) GetClassAttendances(ctx *gin.Context) {
 		return
 	}
 
-	// limit mentor privileges
+	// verify if the mentor own the course
+	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("CourseID %s not found", courseID),
+			"code":  http.StatusNotFound,
+		})
+		return
+	}
+
 	if userClaims.Role == entity.Mentor {
-		if err := c.db.Find(&class, userClaims.ID).Error; err != nil {
-			ctx.JSON(http.StatusForbidden, gin.H{
-				"message": "Only mentor of this class can see student attendances",
-				"code":    http.StatusForbidden,
+		if existingCourse.MentorID != userClaims.UserID {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "you have no access to create new class to this course",
+				"code":  http.StatusBadRequest,
 			})
 			return
 		}
