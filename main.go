@@ -68,7 +68,10 @@ func main() {
 	classService := service.NewClassService(classRepo, courseRepo)
 	classController := controller.NewClassController(classService)
 
-	attendanceController := controller.NewAttendController(dbInit, courseRepo)
+	attendRepo := repository.NewAttendRepo(dbInit)
+	attendService := service.NewAttendService(attendRepo, courseRepo, classRepo, enrollRepo)
+	attendanceController := controller.NewAttendController(attendService)
+
 	projectController := controller.NewProjectController(dbInit, courseRepo)
 	projectSubController := controller.NewProjectSubController(dbInit)
 

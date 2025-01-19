@@ -7,7 +7,7 @@ import (
 
 type EnrollRepo interface {
 	StudentEnroll(enroll entity.Enrollment) (*entity.Enrollment, error)
-	StudentCourseEnroll(courseID, userID string) (*entity.Enrollment, error)
+	GetStudentCourseEnroll(courseID, userID string) (*entity.Enrollment, error)
 	UpdateStudentEnroll(courseID, userID string, updateEnroll entity.Enrollment) (*entity.Enrollment, error)
 }
 
@@ -29,7 +29,7 @@ func (r *EnrollRepoImpl) StudentEnroll(enroll entity.Enrollment) (*entity.Enroll
 	return &enroll, nil
 }
 
-func (r *EnrollRepoImpl) StudentCourseEnroll(courseID, studentID string) (*entity.Enrollment, error) {
+func (r *EnrollRepoImpl) GetStudentCourseEnroll(courseID, studentID string) (*entity.Enrollment, error) {
 	var studentEnroll entity.Enrollment
 
 	if err := r.db.First(&studentEnroll, studentID, courseID).Error; err != nil {

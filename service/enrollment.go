@@ -56,7 +56,7 @@ func (s *EnrollServiceImpl) StudentEnroll(userClaims *middleware.UserClaims, cou
 	}
 
 	// check if student already enroll to a course
-	existingEnroll, err := s.enrollRepo.StudentCourseEnroll(studentID, courseID)
+	existingEnroll, err := s.enrollRepo.GetStudentCourseEnroll(studentID, courseID)
 	if err == nil {
 		return nil, fmt.Errorf("student has enroll with enrollment_id %d", existingEnroll.EnrollmentID)
 	}
@@ -117,7 +117,7 @@ func (s *EnrollServiceImpl) UpdateStudentEnroll(userClaims *middleware.UserClaim
 	}
 
 	// check if student already enroll to a course
-	existingEnroll, err := s.enrollRepo.StudentCourseEnroll(studentID, courseID)
+	existingEnroll, err := s.enrollRepo.GetStudentCourseEnroll(studentID, courseID)
 	if err != nil {
 		return nil, fmt.Errorf("student hasn't enroll to a course. courseid: %s, studentid: %s. err: %v", courseID, studentID, err.Error())
 	}
