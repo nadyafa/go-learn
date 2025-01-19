@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
-	"github.com/nadyafa/go-learn/repository"
-	"gorm.io/gorm"
+	"github.com/nadyafa/go-learn/service"
 )
 
 type ClassController interface {
@@ -22,40 +20,30 @@ type ClassController interface {
 }
 
 type ClassControllerImpl struct {
-	db         *gorm.DB
-	courseRepo repository.CourseRepo
+	classService service.ClassService
 }
 
-func NewClassController(db *gorm.DB, courseRepo repository.CourseRepo) ClassController {
+func NewClassController(classService service.ClassService) ClassController {
 	return &ClassControllerImpl{
-		db:         db,
-		courseRepo: courseRepo,
+		classService: classService,
 	}
 }
 
 // create class (admin & mentor)
 func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
-	// check if the currentUser is admin
+	// check if the user is signed in
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role == entity.Student {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Access Restricted",
-			"code":  http.StatusForbidden,
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User must sign in to create a new class",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
 	// bind json body with model
 	var classReq model.CreateClass
@@ -68,64 +56,12 @@ func (c *ClassControllerImpl) CreateClass(ctx *gin.Context) {
 		return
 	}
 
-	// validate input className, startDate, endDate
-	isValid, _ := middleware.ValidateCourseName(classReq.ClassName)
-	if !isValid {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Class name cannot be empty",
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	isValid, validationMsg := middleware.ValidateCourseDate(classReq.StartDate.Format("02-01-2006 15:04"), classReq.EndDate.Format("02-01-2006 15:04"))
-	if !isValid {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": validationMsg,
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	// // a mentor only able to create class for themselves
-	// if userClaims.Role == entity.Mentor {
-	// 	classReq.MentorID = userClaims.UserID
-	// }
-
-	// verify if the mentor own the course
-	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	// call service layer to create class
+	class, err := c.classService.CreateClass(userClaims, courseID, classReq)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
-
-	if userClaims.Role == entity.Mentor {
-		if existingCourse.MentorID != userClaims.UserID {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": "you have no access to create new class to this course",
-				"code":  http.StatusBadRequest,
-			})
-			return
-		}
-	}
-
-	// add new course to db
-	class := entity.Class{
-		ClassName:   classReq.ClassName,
-		Description: classReq.Description,
-		StartDate:   classReq.StartDate.Time,
-		EndDate:     classReq.EndDate.Time,
-		CourseID:    course.CourseID,
-	}
-
-	if err := c.db.Create(&class).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err,
-			"code":  http.StatusInternalServerError,
-			"msg":   course.CourseID,
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -154,31 +90,21 @@ func (c *ClassControllerImpl) GetClasses(ctx *gin.Context) {
 	claims, _ := ctx.Get("currentUser")
 	_, ok := claims.(*middleware.UserClaims)
 	if !ok {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "You have to signin to open classes",
-			"code":  http.StatusForbidden,
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User must sign in to get classes",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get classes
-	var classes []entity.Class
-
-	if err := c.db.Where("course_id = ?", courseID).Find(&classes).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to retrieve classes",
-			"code":    http.StatusInternalServerError,
+	classes, err := c.classService.GetClasses(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusForbidden, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusForbidden,
 		})
 		return
 	}
@@ -215,32 +141,24 @@ func (c *ClassControllerImpl) GetClassByID(ctx *gin.Context) {
 	claims, _ := ctx.Get("currentUser")
 	_, ok := claims.(*middleware.UserClaims)
 	if !ok {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "You have to sign in to look at classes",
-			"code":  http.StatusForbidden,
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User must sign in to get a class",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get class
+	// get classID param
 	classID := ctx.Param("class_id")
-	var class entity.Class
 
-	if err := c.db.Where("course_id = ?", courseID).First(&class, classID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("ClassID %s not found", classID),
-			"code":    http.StatusNotFound,
+	class, err := c.classService.GetClassByID(courseID, classID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -269,37 +187,19 @@ func (c *ClassControllerImpl) UpdateClassByID(ctx *gin.Context) {
 	// make sure user has signed in
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role == entity.Student {
+	if !ok {
 		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Access Restricted",
+			"error": "User must sign in to update a class",
 			"code":  http.StatusForbidden,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get clasID
+	// get classID param
 	classID := ctx.Param("class_id")
-
-	// find classID
-	var existingClass entity.Class
-	if err := c.db.First(&existingClass, classID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Class not found",
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
 
 	// get class body input
 	var classReq model.UpdateClass
@@ -311,80 +211,32 @@ func (c *ClassControllerImpl) UpdateClassByID(ctx *gin.Context) {
 		return
 	}
 
-	// validate date input
-	isValid, validationMsg := middleware.ValidateCourseDate(classReq.StartDate.Format("02-01-2006 15:04"), classReq.EndDate.Format("02-01-2006 15:04"))
-	if !isValid {
+	// update class
+	class, err := c.classService.UpdateClassByID(userClaims, courseID, classID, classReq)
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": validationMsg,
+			"error": err.Error(),
 			"code":  http.StatusBadRequest,
 		})
 		return
 	}
 
-	// update fields if not empty
-	if classReq.ClassName != "" {
-		existingClass.ClassName = classReq.ClassName
-	}
-
-	if classReq.Description != "" {
-		existingClass.Description = classReq.Description
-	}
-
-	if classReq.StartDate.IsZero() {
-		existingClass.StartDate = classReq.StartDate.Time
-	}
-
-	if classReq.EndDate.IsZero() {
-		existingClass.EndDate = classReq.EndDate.Time
-	}
-
-	existingClass.UpdatedAt = time.Now()
-
-	// a mentor only able to create class for themselves
-	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
-	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
-
-	if userClaims.Role == entity.Mentor {
-		if existingCourse.MentorID != userClaims.UserID {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": "you have no access to create new class to this course",
-				"code":  http.StatusBadRequest,
-			})
-			return
-		}
-	}
-
-	// update class to db
-	if err := c.db.Save(&existingClass).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": fmt.Sprintf("Failed to update class with ID %s", classID),
-			"code":    http.StatusInternalServerError,
-		})
-		return
-	}
-
 	// succeed response
-	class := model.ClassResp{
-		ClassID:     existingClass.ClassID,
-		CourseID:    existingClass.CourseID,
-		ClassName:   existingClass.ClassName,
-		Description: existingClass.Description,
-		StartDate:   existingClass.StartDate,
-		EndDate:     existingClass.EndDate,
-		CreatedAt:   existingClass.CreatedAt,
+	classResp := model.ClassResp{
+		ClassID:     class.ClassID,
+		CourseID:    class.CourseID,
+		ClassName:   class.ClassName,
+		Description: class.Description,
+		StartDate:   class.StartDate,
+		EndDate:     class.EndDate,
+		CreatedAt:   class.CreatedAt,
 		UpdatedAt:   time.Now(),
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("ClassID %s updated successfully", classID),
 		"code":    http.StatusOK,
-		"data":    class,
+		"data":    classResp,
 	})
 }
 
@@ -393,43 +245,25 @@ func (c *ClassControllerImpl) DeleteClassByID(ctx *gin.Context) {
 	// make sure user has signed in
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role != entity.Admin {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Access Restricted",
-			"code":  http.StatusForbidden,
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User must sign in to delete a class",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.Find(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get classID
+	// get classID param
 	classID := ctx.Param("class_id")
 
-	// find classID
-	var class entity.Class
-	if err := c.db.First(&class, classID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Class not found",
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
-
-	// update class to db
-	if err := c.db.Delete(&class).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": fmt.Sprintf("Failed to delete class with ID %s", classID),
-			"code":    http.StatusInternalServerError,
+	// delete class
+	if err := c.classService.DeleteClassByID(userClaims, courseID, classID); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
