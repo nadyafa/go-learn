@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/nadyafa/go-learn/entity"
@@ -74,27 +73,27 @@ func (s *EnrollServiceImpl) StudentEnroll(userClaims *middleware.UserClaims, cou
 		return nil, fmt.Errorf("student unable to enroll")
 	}
 
-	// notify student
-	if userClaims.Role == entity.Student {
-		if err := middleware.SendMail(
-			userExist.Email,
-			"Go-Learn: Course Enrollment",
-			fmt.Sprintf("You have successfully signed to a courseID %s. You enrollment status currently on pending. We will soon notified you once it verified. Good luck!", courseID),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to student: %v", err)
-		}
-	}
+	// // notify student
+	// if userClaims.Role == entity.Student {
+	// 	if err := middleware.SendMail(
+	// 		userExist.Email,
+	// 		"Go-Learn: Course Enrollment",
+	// 		fmt.Sprintf("You have successfully signed to a courseID %s. You enrollment status currently on pending. We will soon notified you once it verified. Good luck!", courseID),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to student: %v", err)
+	// 	}
+	// }
 
-	// notify admin
-	if userClaims.Role == entity.Admin {
-		if err := middleware.SendMail(
-			os.Getenv("ADMIN_EMAIL"),
-			"A New User Course Enrollment",
-			fmt.Sprintf("UserID %d has signed to a courseID %s. Please validate their enrollment status.", userExist.UserID, courseID),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to admin: %v", err)
-		}
-	}
+	// // notify admin
+	// if userClaims.Role == entity.Admin {
+	// 	if err := middleware.SendMail(
+	// 		os.Getenv("ADMIN_EMAIL"),
+	// 		"A New User Course Enrollment",
+	// 		fmt.Sprintf("UserID %d has signed to a courseID %s. Please validate their enrollment status.", userExist.UserID, courseID),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to admin: %v", err)
+	// 	}
+	// }
 
 	return newEnroll, nil
 }
@@ -111,7 +110,7 @@ func (s *EnrollServiceImpl) UpdateStudentEnroll(userClaims *middleware.UserClaim
 	}
 
 	// check if user exist
-	userExist, err := s.userRepo.GetUserByID(studentID)
+	_, err := s.userRepo.GetUserByID(studentID)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
 	}
@@ -139,16 +138,16 @@ func (s *EnrollServiceImpl) UpdateStudentEnroll(userClaims *middleware.UserClaim
 		return nil, fmt.Errorf("unable to update student status enrollment")
 	}
 
-	// notify student
-	if userClaims.Role == entity.Student {
-		if err := middleware.SendMail(
-			userExist.Email,
-			"Go-Learn: Course Enrollment",
-			fmt.Sprintf("You have successfully signed to a courseID %s. You enrollment status currently on pending. We will soon notified you once it verified. Good luck!", courseID),
-		); err != nil {
-			return nil, fmt.Errorf("failed to send notification to student: %v", err)
-		}
-	}
+	// // notify student
+	// if userClaims.Role == entity.Student {
+	// 	if err := middleware.SendMail(
+	// 		userExist.Email,
+	// 		"Go-Learn: Course Enrollment",
+	// 		fmt.Sprintf("You have successfully signed to a courseID %s. You enrollment status currently on pending. We will soon notified you once it verified. Good luck!", courseID),
+	// 	); err != nil {
+	// 		return nil, fmt.Errorf("failed to send notification to student: %v", err)
+	// 	}
+	// }
 
 	return enroll, nil
 }

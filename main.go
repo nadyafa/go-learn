@@ -72,7 +72,10 @@ func main() {
 	attendService := service.NewAttendService(attendRepo, courseRepo, classRepo, enrollRepo)
 	attendanceController := controller.NewAttendController(attendService)
 
-	projectController := controller.NewProjectController(dbInit, courseRepo)
+	projectRepo := repository.NewProjectRepo(dbInit)
+	projectService := service.NewProjectService(projectRepo, courseRepo)
+	projectController := controller.NewProjectController(projectService)
+
 	projectSubController := controller.NewProjectSubController(dbInit)
 
 	// auth
@@ -107,7 +110,7 @@ func main() {
 	r.POST("/:course_id/projects", middleware.AuthMiddleware, projectController.CreateProject) //admin & mentor
 	r.GET("/:course_id/projects", middleware.AuthMiddleware, projectController.GetProjects)
 	r.GET("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.GetProjectByID)
-	r.PUT("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.UpdateProject)        //admin & mentor
+	r.PUT("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.UpdateProjectByID)    //admin & mentor
 	r.DELETE("/:course_id/projects/:project_id", middleware.AuthMiddleware, projectController.DeleteProjectByID) //admin & mentor
 
 	// projectSub

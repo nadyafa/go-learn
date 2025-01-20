@@ -5,30 +5,26 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nadyafa/go-learn/entity"
 	"github.com/nadyafa/go-learn/middleware"
 	"github.com/nadyafa/go-learn/model"
-	"github.com/nadyafa/go-learn/repository"
-	"gorm.io/gorm"
+	"github.com/nadyafa/go-learn/service"
 )
 
 type ProjectController interface {
 	CreateProject(ctx *gin.Context)
 	GetProjects(ctx *gin.Context)
 	GetProjectByID(ctx *gin.Context)
-	UpdateProject(ctx *gin.Context)
+	UpdateProjectByID(ctx *gin.Context)
 	DeleteProjectByID(ctx *gin.Context)
 }
 
 type ProjectControllerImpl struct {
-	db         *gorm.DB
-	courseRepo repository.CourseRepo
+	projectService service.ProjectService
 }
 
-func NewProjectController(db *gorm.DB, courseRepo repository.CourseRepo) ProjectController {
+func NewProjectController(projectService service.ProjectService) ProjectController {
 	return &ProjectControllerImpl{
-		db:         db,
-		courseRepo: courseRepo,
+		projectService: projectService,
 	}
 }
 
@@ -37,24 +33,16 @@ func (c *ProjectControllerImpl) CreateProject(ctx *gin.Context) {
 	// check if the currentUser is admin
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role == entity.Student {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Only admin & mentor can create a new course",
-			"code":  http.StatusForbidden,
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User must sign in to create a new project",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
 	// validate courseID
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
 	// bind json body with model
 	var projectReq model.CreateProject
@@ -67,58 +55,12 @@ func (c *ProjectControllerImpl) CreateProject(ctx *gin.Context) {
 		return
 	}
 
-	// validate input projectName
-	isValid, validationMsg := middleware.ValidateCourseName(projectReq.ProjectName)
-	if !isValid {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": validationMsg.Error(),
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	// validate deadline project < endDate course
-	isValid, validationMsg = middleware.ValidateCourseDate(projectReq.Deadline.Format("02-01-2006 15:04"), course.EndDate.Format("02-01-2006 15:04"))
-	if !isValid {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": validationMsg.Error(),
-			"code":  http.StatusBadRequest,
-		})
-		return
-	}
-
-	// verify if the mentor own the course
-	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	// call service layer createProject
+	project, err := c.projectService.CreateProject(userClaims, courseID, projectReq)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
-
-	if userClaims.Role == entity.Mentor {
-		if existingCourse.MentorID != userClaims.UserID {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": "you have no access to create new class to this course",
-				"code":  http.StatusBadRequest,
-			})
-			return
-		}
-	}
-
-	// add new course to db
-	project := entity.Project{
-		CourseID:    course.CourseID,
-		ProjectName: projectReq.ProjectName,
-		Description: projectReq.Description,
-		Deadline:    projectReq.Deadline.Time,
-	}
-
-	if err := c.db.Create(&project).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create course",
-			"code":  http.StatusInternalServerError,
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -135,7 +77,7 @@ func (c *ProjectControllerImpl) CreateProject(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"message": fmt.Sprintf("Project on course %s created successfully", course.CourseName),
+		"message": fmt.Sprintf("ProjectID %s created successfully", fmt.Sprint(project.ProjectID)),
 		"user":    projectResp,
 	})
 }
@@ -146,31 +88,22 @@ func (c *ProjectControllerImpl) GetProjects(ctx *gin.Context) {
 	claims, _ := ctx.Get("currentUser")
 	_, ok := claims.(*middleware.UserClaims)
 	if !ok {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "You have to signin to open classes",
-			"code":  http.StatusForbidden,
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User must sign in to get project lists",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
 	// make sure courseID exist
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get classes
-	var projects []entity.Project
-
-	if err := c.db.Where("course_id = ?", courseID).Find(&projects).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed to retrieve projects",
-			"code":    http.StatusInternalServerError,
+	// get projects
+	projects, err := c.projectService.GetProjects(courseID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "User must sign in to get project lists",
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -194,8 +127,7 @@ func (c *ProjectControllerImpl) GetProjects(ctx *gin.Context) {
 
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Classes fetch successfully",
-		"code":    http.StatusOK,
+		"message": "Projects fetch successfully",
 		"data":    projectResponses,
 	})
 }
@@ -206,32 +138,25 @@ func (c *ProjectControllerImpl) GetProjectByID(ctx *gin.Context) {
 	claims, _ := ctx.Get("currentUser")
 	_, ok := claims.(*middleware.UserClaims)
 	if !ok {
-		ctx.JSON(http.StatusForbidden, gin.H{
+		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"error": "You have to sign in to look at detail project",
-			"code":  http.StatusForbidden,
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
-	// make sure courseID exist
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get class
+	// get projectID param
 	projectID := ctx.Param("project_id")
-	var project entity.Project
 
-	if err := c.db.Where("course_id = ?", courseID).First(&project, projectID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("ProjectID %s not found", projectID),
-			"code":    http.StatusNotFound,
+	// get projectID
+	project, err := c.projectService.GetProjectByID(courseID, projectID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -248,47 +173,29 @@ func (c *ProjectControllerImpl) GetProjectByID(ctx *gin.Context) {
 
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Class fetch successfully",
-		"code":    http.StatusOK,
+		"message": fmt.Sprintf("ProjectID %s fetch successfully", projectID),
 		"data":    projectResp,
 	})
 }
 
 // update project (admin & mentor)
-func (c *ProjectControllerImpl) UpdateProject(ctx *gin.Context) {
+func (c *ProjectControllerImpl) UpdateProjectByID(ctx *gin.Context) {
 	// check if the currentUser is admin
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role == entity.Student {
+	if !ok {
 		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Only admin & mentor can create a new course",
+			"error": "You have to sign in to update a project",
 			"code":  http.StatusForbidden,
 		})
 		return
 	}
 
-	// validate courseID
+	// get courseID param
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get projectID
+	// get projectID param
 	projectID := ctx.Param("project_id")
-	var existingProject entity.Project
-
-	if err := c.db.First(&existingProject, projectID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Project not found",
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
 
 	// bind json body with model
 	var projectReq model.UpdateProject
@@ -301,61 +208,12 @@ func (c *ProjectControllerImpl) UpdateProject(ctx *gin.Context) {
 		return
 	}
 
-	// update fields if not empty
-	if projectReq.ProjectName != "" {
-		existingProject.ProjectName = projectReq.ProjectName
-	}
-
-	if projectReq.Description != "" {
-		existingProject.Description = projectReq.Description
-	}
-
-	if !projectReq.Deadline.IsZero() {
-		// validate deadline project < endDate course
-		isValid, validationMsg := middleware.ValidateCourseDate(projectReq.Deadline.Format("02-01-2006 15:04"), course.EndDate.Format("02-01-2006 15:04"))
-		if !isValid {
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"error": validationMsg,
-				"code":  http.StatusBadRequest,
-			})
-			return
-		}
-
-		existingProject.Deadline = projectReq.Deadline.Time
-	}
-
-	// verify if the mentor own the course
-	existingCourse, err := c.courseRepo.GetCourseByID(courseID)
+	// update project
+	project, err := c.projectService.UpdatedProjectByID(userClaims, courseID, projectID, projectReq)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
-
-	if userClaims.Role == entity.Mentor {
-		if existingCourse.MentorID != userClaims.UserID {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": "you have no access to create new class to this course",
-				"code":  http.StatusBadRequest,
-			})
-			return
-		}
-	}
-
-	// add new course to db
-	project := entity.Project{
-		CourseID:    course.CourseID,
-		ProjectName: existingProject.ProjectName,
-		Description: existingProject.Description,
-		Deadline:    existingProject.Deadline,
-	}
-
-	if err := c.db.Create(&project).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create course",
-			"code":  http.StatusInternalServerError,
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
@@ -372,7 +230,7 @@ func (c *ProjectControllerImpl) UpdateProject(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("Project %s created successfully", course.CourseName),
+		"message": fmt.Sprintf("ProjectID %s updated successfully", projectID),
 		"user":    projectResp,
 	})
 }
@@ -382,50 +240,29 @@ func (c *ProjectControllerImpl) DeleteProjectByID(ctx *gin.Context) {
 	// make sure user has signed in
 	claims, _ := ctx.Get("currentUser")
 	userClaims, ok := claims.(*middleware.UserClaims)
-	if !ok || userClaims.Role != entity.Admin {
-		ctx.JSON(http.StatusForbidden, gin.H{
-			"error": "Access Restricted",
-			"code":  http.StatusForbidden,
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "You have to sign in to delete a project",
+			"code":  http.StatusUnauthorized,
 		})
 		return
 	}
 
-	// make sure courseID exist
 	courseID := ctx.Param("course_id")
-	var course entity.Course
-	if err := c.db.First(&course, courseID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message": fmt.Sprintf("CourseID %s not found", courseID),
-			"code":    http.StatusNotFound,
-		})
-		return
-	}
 
-	// get classID
 	projectID := ctx.Param("project_id")
 
-	// find classID
-	var project entity.Project
-	if err := c.db.First(&project, projectID).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"error": "Project not found",
-			"code":  http.StatusNotFound,
-		})
-		return
-	}
-
-	// update class to db
-	if err := c.db.Delete(&project).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": fmt.Sprintf("Failed to delete project with ID %s", projectID),
-			"code":    http.StatusInternalServerError,
+	if err := c.projectService.DeleteProjectByID(userClaims, courseID, projectID); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+			"code":  http.StatusBadRequest,
 		})
 		return
 	}
 
 	// succeed response
 	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("ProjectID %s has been deleted", projectID),
+		"message": "Project has been deleted",
 		"code":    http.StatusOK,
 	})
 }
