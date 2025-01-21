@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nadyafa/go-learn/config/db"
@@ -34,18 +33,8 @@ func main() {
 	// db migration
 	db.RunMigration(dbInit)
 
-	// create super admin
-	// if err := model.AdminLogin(dbInit); err != nil {
-	// 	log.Printf("Unable creating super admin: %v", err)
-	// }
-
 	// setup route
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
 
 	// setup dependencies injection
 	userRepo := repository.NewUserRepo(dbInit)
@@ -128,15 +117,6 @@ func main() {
 	// enrollment
 	r.POST("/:course_id/enrollments", middleware.AuthMiddleware, enrollController.StudentEnroll)                 //student & mentor
 	r.PUT("/:course_id/enrollments/:enroll_id", middleware.AuthMiddleware, enrollController.UpdateStudentEnroll) //admin
-
-	// activity
-	// percentage student attendance based on number of class
-	// score of project
-
-	// notification
-	// notify mentor signup
-	// notify enrollment
-	// notify submission
 
 	r.Run()
 }

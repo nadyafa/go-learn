@@ -611,50 +611,6 @@
 					"response": []
 				},
 				{
-					"name": "Create a New Class (Admin)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{ownerAccessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"class_name\":\"REST API using Node.JS\",\r\n    \"start_date\":\"01-01-2025 09:00\",\r\n    \"end_date\":\"01-01-2025 12:00\",\r\n    \"mentor_id\": 3\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "localhost:8080/:course_id/classes",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								":course_id",
-								"classes"
-							],
-							"variable": [
-								{
-									"key": "course_id",
-									"value": "1"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Get All Classes",
 					"request": {
 						"auth": {
@@ -953,7 +909,7 @@
 								},
 								{
 									"key": "attend_id",
-									"value": "1"
+									"value": "2"
 								}
 							]
 						}
@@ -1085,7 +1041,7 @@
 					"response": []
 				},
 				{
-					"name": "Update Course by ID",
+					"name": "Update Project by ID",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -1101,7 +1057,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"course_name\":\"javascript\",\r\n    \"start_date\":\"02-02-2025 09:00\",\r\n    \"end_date\":\"02-02-2025 12:00\"\r\n}",
+							"raw": "{\r\n    \"project_name\":\"inventory\",\r\n    \"deadline\":\"02-02-2025 12:00\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1109,18 +1065,23 @@
 							}
 						},
 						"url": {
-							"raw": "localhost:8080/courses/:course_id",
+							"raw": "localhost:8080/:course_id/projects/:project_id",
 							"host": [
 								"localhost"
 							],
 							"port": "8080",
 							"path": [
-								"courses",
-								":course_id"
+								":course_id",
+								"projects",
+								":project_id"
 							],
 							"variable": [
 								{
 									"key": "course_id",
+									"value": "1"
+								},
+								{
+									"key": "project_id",
 									"value": "1"
 								}
 							]
@@ -1144,19 +1105,24 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "localhost:8080/courses/:course_id",
+							"raw": "localhost:8080/:course_id/projects/:project_id",
 							"host": [
 								"localhost"
 							],
 							"port": "8080",
 							"path": [
-								"courses",
-								":course_id"
+								":course_id",
+								"projects",
+								":project_id"
 							],
 							"variable": [
 								{
 									"key": "course_id",
-									"value": "3"
+									"value": "1"
+								},
+								{
+									"key": "project_id",
+									"value": "1"
 								}
 							]
 						}
@@ -1267,7 +1233,7 @@
 								},
 								{
 									"key": "project_sub_id",
-									"value": "3"
+									"value": "1"
 								}
 							]
 						}
@@ -1340,7 +1306,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"student_id\": 4,\r\n    \"enroll_status\": \"enroll\"\r\n}",
+							"raw": "{\r\n    \"student_id\": 2,\r\n    \"enroll_status\": \"enroll\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
